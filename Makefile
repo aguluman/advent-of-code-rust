@@ -134,14 +134,23 @@ run-release:
 	@if [ -z "$(DAY)" ]; then \
 		echo "Please specify a day with DAY=XX"; \
 		exit 1; \
-	fi; \
-	if [ -z "$(INPUT)" ]; then \
+	fi
+	@if [ -z "$(INPUT)" ]; then \
 		echo "Please specify an input file with INPUT=path/to/input.txt"; \
 		exit 1; \
+	fi
+	@if [ "$(INPUT)" = "puzzle_input" ]; then \
+		INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+	else \
+		INPUT_PATH="$(INPUT)"; \
 	fi; \
-	$(eval ACTUAL_INPUT := $(if $(filter puzzle_input,$(INPUT)),C:\Users\chukw\Downloads\input.txt,$(INPUT))); \
-	echo "Building and running day$(DAY) in release mode with input $(ACTUAL_INPUT)..."; \
-	cd day$(DAY) && cargo build --release && type "$(ACTUAL_INPUT)" | .\target\release\day$(DAY).exe
+	echo "Building and running day$(DAY) in release mode with input $$INPUT_PATH..."; \
+	cd day$(DAY) && cargo build --release && \
+	if command -v type >/dev/null 2>&1; then \
+		type "$$INPUT_PATH" | ./target/release/day$(DAY).exe; \
+	else \
+		cat "$$INPUT_PATH" | ./target/release/day$(DAY).exe; \
+	fi
 
 # Run the current day (most recent) with input file
 run-current:

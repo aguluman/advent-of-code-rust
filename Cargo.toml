@@ -5,12 +5,13 @@ members = [
     "day03",
     # Add new days as they are created
 ]
+resolver = "3"
 
 [workspace.package]
 edition = "2024"
-authors = ["Your Name <your.email@example.com>"]  # Update this with your info
-repository = "https://github.com/your-username/advent-of-code-2024-rust"  # Update this
-license = "MIT"  # Or your preferred license
+authors = ["Chukwuma Akunyili <chukwumaakunyili@gmail.com>"]
+repository = "https://github.com/aguluman/advent-of-code-2024-rust" 
+license = "MIT"
 
 [profile.dev]
 opt-level = 0
