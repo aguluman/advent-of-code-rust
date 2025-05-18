@@ -43,7 +43,6 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 fmt             : Format all code"
     Write-Host "  .\run-aoc.ps1 fmt-check       : Check formatting for all code"
     Write-Host "  .\run-aoc.ps1 check           : Run cargo check for all days"
-    Write-Host "  .\run-aoc.ps1 benchmark       : Run benchmarks for all days"
     Write-Host "  .\run-aoc.ps1 clean           : Clean all build artifacts"
     Write-Host "  .\run-aoc.ps1 new-day         : Create a new day from template (interactive)"
     Write-Host "  .\run-aoc.ps1 setup           : Setup project from scratch"
@@ -182,16 +181,7 @@ function CheckAllDays {
     }
 }
 
-function BenchmarkAllDays {
-    $days = GetDayDirectories
-    Write-Host "Running benchmarks for all days..." -ForegroundColor Cyan
-    foreach ($day in $days) {
-        Write-Host "Benchmarking $day..." -ForegroundColor Green
-        Push-Location $day
-        cargo bench
-        Pop-Location
-    }
-}
+
 
 function CleanAllDays {
     $days = GetDayDirectories
@@ -416,7 +406,6 @@ switch ($Command) {
     "fmt" { FormatAllDays }
     "fmt-check" { FormatCheckAllDays }
     "check" { CheckAllDays }
-    "benchmark" { BenchmarkAllDays }
     "clean" { CleanAllDays }
     "new-day" { CreateNewDay }
     "setup" { SetupProject }
