@@ -120,4 +120,4 @@ nix-build build.nix -A days.day01
 
 ## License
 
-[MIT License](License.md) (or specify your preferred license)
+[MIT License](License.md)
