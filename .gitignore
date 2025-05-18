@@ -37,3 +37,7 @@ Cargo.lock
 
 # Rustfmt backup files
 **/*.rs.bk
+
+# Added by cargo
+
+/target
