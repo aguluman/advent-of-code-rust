@@ -139,8 +139,9 @@ run-release:
 		echo "Please specify an input file with INPUT=path/to/input.txt"; \
 		exit 1; \
 	fi; \
-	echo "Building and running day$(DAY) in release mode with input $(INPUT)..."; \
-	cd day$(DAY) && cargo build --release && type "$(INPUT)" | .\target\release\day$(DAY).exe
+	$(eval ACTUAL_INPUT := $(if $(filter puzzle_input,$(INPUT)),C:\Users\chukw\Downloads\input.txt,$(INPUT))); \
+	echo "Building and running day$(DAY) in release mode with input $(ACTUAL_INPUT)..."; \
+	cd day$(DAY) && cargo build --release && type "$(ACTUAL_INPUT)" | .\target\release\day$(DAY).exe
 
 # Run the current day (most recent) with input file
 run-current:
@@ -172,7 +173,7 @@ help:
 	@echo "  new-day         : Create a new day from template (interactive)"
 	@echo "  setup           : Setup project from scratch"
 	@echo "  run-day         : Run a specific day with input (DAY=XX INPUT=path/to/input.txt)"
-	@echo "  run-release     : Build and run a specific day in release mode (DAY=XX INPUT=path/to/input.txt)"
+	@echo "  run-release     : Build and run a specific day in release mode (DAY=XX INPUT=path/to/input.txt or INPUT=puzzle_input)"
 	@echo "  run-current     : Run the current day with input (INPUT=path/to/input.txt)"
 	@echo "  help            : Show this help message"
 	@echo ""
@@ -180,5 +181,5 @@ help:
 	@echo "  make build-01            # Build day01"
 	@echo "  make test-03             # Run tests for day03"
 	@echo "  make run-day DAY=02 INPUT=../inputs/day02.txt  # Run day02 with specified input"
-	@echo "  make run-release DAY=01 INPUT=C:\\Users\\chukw\\Downloads\\input.txt  # Build and run day01 in release mode"
+	@echo "  make run-release DAY=01 INPUT=puzzle_input  # Build and run day01 in release mode with default input"
 	@echo ""
