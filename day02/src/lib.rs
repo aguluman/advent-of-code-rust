@@ -26,7 +26,7 @@ pub fn is_safe(report: &[i32]) -> bool {
 
         // Difference check - must be between 1 and 3 inclusive
         let diff = (curr - next).abs();
-        if diff < 1 || diff > 3 {
+        if !(1..=3).contains(&diff) {
             return false;
         }
     }
