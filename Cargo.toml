@@ -1,0 +1,31 @@
+[workspace]
+members = [
+    "day01",
+    "day02",
+    "day03",
+    # Add new days as they are created
+]
+
+[workspace.package]
+edition = "2024"
+authors = ["Your Name <your.email@example.com>"]  # Update this with your info
+repository = "https://github.com/your-username/advent-of-code-2024-rust"  # Update this
+license = "MIT"  # Or your preferred license
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+# For benchmarks
+[profile.bench]
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
