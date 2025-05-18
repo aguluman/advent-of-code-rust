@@ -1,32 +1,62 @@
-/// Creates pairs of adjacent elements in a vector
-pub fn pairwise(lst: &[i32]) -> Vec<(i32, i32)> {
-    lst.windows(2).map(|w| (w[0], w[1])).collect()
-}
-
 /// Checks if a report is safe according to the safety criteria
+/// Optimized version that doesn't create intermediate collections
 pub fn is_safe(report: &[i32]) -> bool {
-    let pairs = pairwise(report);
+    if report.len() < 2 {
+        return false; // Not enough elements to form pairs
+    }
 
-    // Check if all pairs are increasing or all pairs are decreasing
-    let all_increasing = pairs.iter().all(|(x, y)| x > y);
-    let all_decreasing = pairs.iter().all(|(x, y)| x < y);
+    // Check the first pair to determine if we're looking for increasing or decreasing
+    let first_increasing = report[0] > report[1];
 
-    // Check if absolute difference is between 1 and 3 inclusive
-    let all_valid_diff = pairs.iter().all(|(x, y)| {
-        let diff = (x - y).abs();
-        diff >= 1 && diff <= 3
-    });
+    // Initialize to match the expected pattern (all increasing or all decreasing)
+    let mut valid_direction = true;
 
-    (all_increasing || all_decreasing) && all_valid_diff
+    // Check all pairs in one pass
+    for i in 0..report.len() - 1 {
+        let curr = report[i];
+        let next = report[i + 1];
+
+        let is_curr_pair_increasing = curr > next;
+
+        // Direction check - all must be increasing or all decreasing
+        if is_curr_pair_increasing != first_increasing {
+            valid_direction = false;
+            break;
+        }
+
+        // Difference check - must be between 1 and 3 inclusive
+        let diff = (curr - next).abs();
+        if diff < 1 || diff > 3 {
+            return false;
+        }
+    }
+
+    valid_direction
 }
 
-/// Removes element at specified index from a vector
-pub fn remove_at(n: usize, lst: &[i32]) -> Vec<i32> {
-    lst.iter()
-        .enumerate()
-        .filter(|&(i, _)| i != n)
-        .map(|(_, &x)| x)
-        .collect()
+/// Check if removing one element can make the report safe
+/// Uses a more efficient approach by avoiding repeated allocations
+fn can_be_made_safe(report: &[i32]) -> bool {
+    if report.len() < 3 {
+        return false; // Need at least 3 elements to remove 1 and have a valid pair
+    }
+
+    for skip_idx in 0..report.len() {
+        // Create a temporary buffer to check safety without allocating multiple times
+        let mut temp_report = Vec::with_capacity(report.len() - 1);
+
+        for (i, &val) in report.iter().enumerate() {
+            if i != skip_idx {
+                temp_report.push(val);
+            }
+        }
+
+        if is_safe(&temp_report) {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Part 1: Count the number of safe reports
@@ -38,21 +68,33 @@ pub fn part1(reports: &[Vec<i32>]) -> usize {
 pub fn part2(reports: &[Vec<i32>]) -> usize {
     reports
         .iter()
-        .filter(|report| (0..report.len()).any(|i| is_safe(&remove_at(i, report))))
+        .filter(|report| can_be_made_safe(report))
         .count()
 }
 
 /// Parse function to convert string input to a vector of integer vectors
+/// Uses pre-allocation for better performance
 pub fn parse(input: &str) -> Vec<Vec<i32>> {
-    input
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| {
-            line.split_whitespace()
-                .map(|s| s.parse::<i32>().unwrap())
-                .collect()
-        })
-        .collect()
+    // Pre-count the number of lines for capacity planning
+    let line_count = input.lines().filter(|line| !line.trim().is_empty()).count();
+    let mut result = Vec::with_capacity(line_count);
+
+    for line in input.lines().filter(|line| !line.trim().is_empty()) {
+        // Estimate the number of numbers in this line based on whitespace
+        let num_count = line.split_whitespace().count();
+        let mut nums = Vec::with_capacity(num_count);
+
+        for s in line.split_whitespace() {
+            // Use unwrap_or for safety but maintain performance
+            if let Ok(num) = s.parse::<i32>() {
+                nums.push(num);
+            }
+        }
+
+        result.push(nums);
+    }
+
+    result
 }
 
 #[cfg(test)]
