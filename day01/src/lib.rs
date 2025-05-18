@@ -5,8 +5,12 @@ pub fn part1(location_ids: &[(i32, i32)]) -> i32 {
     let (mut lefts, mut rights): (Vec<_>, Vec<_>) = location_ids.iter().cloned().unzip();
     lefts.sort_unstable();
     rights.sort_unstable();
-    
-    lefts.iter().zip(rights.iter()).map(|(l, r)| (l - r).abs()).sum()
+
+    lefts
+        .iter()
+        .zip(rights.iter())
+        .map(|(l, r)| (l - r).abs())
+        .sum()
 }
 
 /// Part 2: Calculate weighted sum based on frequency counter
@@ -21,11 +25,10 @@ pub fn part2(location_ids: &[(i32, i32)]) -> i64 {
     }
 
     // Sum left elements multiplied by their frequency in right
-    left.iter()
-        .fold(0i64, |acc, &l| {
-            let count = *counter.get(&l).unwrap_or(&0);
-            acc + (l as i64 * count as i64)
-        })
+    left.iter().fold(0i64, |acc, &l| {
+        let count = *counter.get(&l).unwrap_or(&0);
+        acc + (l as i64 * count as i64)
+    })
 }
 
 /// Parse function to convert string input to a vector of integer pairs

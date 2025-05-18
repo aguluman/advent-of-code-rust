@@ -1,4 +1,4 @@
-/// Checks if a report is safe according to the safety criteria
+/// Checks if a report is safe, according to the safety criteria,
 /// Optimized version that doesn't create intermediate collections
 pub fn is_safe(report: &[i32]) -> bool {
     if report.len() < 2 {
