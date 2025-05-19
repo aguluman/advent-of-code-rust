@@ -27,7 +27,7 @@ pkgs.rustPlatform.buildRustPackage {
   
   meta = with pkgs.lib; {
     description = "Solutions for Advent of Code 2024 in Rust";
-    homepage = "https://github.com/your-username/advent-of-code-2024-rust";
+    homepage = "https://github.com/aguluman/advent-of-code-2024-rust";
     license = licenses.mit;  # Adjust as needed
     maintainers = [ ];
   };
