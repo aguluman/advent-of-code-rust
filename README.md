@@ -45,7 +45,7 @@ Each day's puzzle is implemented as a separate Rust crate:
 
 ## Build and Run
 
-The project supports two build systems: a `Makefile` for Unix-like environments (Linux, macOS, WSL) and a PowerShell script for native Windows environments.
+The project supports two build systems: a `Makefile` for Unix-like environments (Linux, macOS, WSL) and a `PowerShell script` for native Windows environments.
 
 ### Unix/Linux/WSL Build System (Makefile)
 
