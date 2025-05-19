@@ -140,16 +140,26 @@ run-release:
 		exit 1; \
 	fi
 	@if [ "$(INPUT)" = "puzzle_input" ]; then \
-		INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+		if [ -d "/mnt/c" ]; then \
+			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \
+		elif [ "$(shell uname -s)" = "Linux" ]; then \
+			INPUT_PATH="$(HOME)/Downloads/input.txt"; \
+		else \
+			INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+		fi; \
 	else \
 		INPUT_PATH="$(INPUT)"; \
 	fi; \
 	echo "Building and running day$(DAY) in release mode with input $$INPUT_PATH..."; \
 	cd day$(DAY) && cargo build --release && \
-	if command -v type >/dev/null 2>&1; then \
-		type "$$INPUT_PATH" | ./target/release/day$(DAY).exe; \
+	if [ "$(shell uname -s)" = "Linux" ] || [ -d "/mnt/c" ]; then \
+		cat "$$INPUT_PATH" | ../target/release/day$(DAY); \
 	else \
-		cat "$$INPUT_PATH" | ./target/release/day$(DAY).exe; \
+		if command -v type >/dev/null 2>&1; then \
+			type "$$INPUT_PATH" | ../target/release/day$(DAY).exe; \
+		else \
+			cat "$$INPUT_PATH" | ../target/release/day$(DAY).exe; \
+		fi; \
 	fi
 
 # Run the current day (most recent) with input file
