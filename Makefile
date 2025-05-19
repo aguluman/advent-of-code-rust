@@ -167,9 +167,20 @@ run-current:
 	@if [ -z "$(INPUT)" ]; then \
 		echo "Please specify an input file with INPUT=path/to/input.txt"; \
 		exit 1; \
+	fi
+	@if [ "$(INPUT)" = "puzzle_input" ]; then \
+		if [ -d "/mnt/c" ]; then \
+			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \
+		elif [ "$(shell uname -s)" = "Linux" ]; then \
+			INPUT_PATH="$(HOME)/Downloads/input.txt"; \
+		else \
+			INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+		fi; \
+	else \
+		INPUT_PATH="$(INPUT)"; \
 	fi; \
-	echo "Running $(CURRENT_DAY) with input $(INPUT)..."; \
-	cd $(CURRENT_DAY) && cargo run < $(INPUT)
+	echo "Running $(CURRENT_DAY) with input $$INPUT_PATH..."; \
+	cd $(CURRENT_DAY) && cargo run < "$$INPUT_PATH"
 
 # Show help
 help:

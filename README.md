@@ -80,8 +80,17 @@ make test-01
 # Run a specific day with input
 make run-day DAY=01 INPUT=path/to/input.txt
 
+# Run a specific day in release mode with input
+make run-release DAY=01 INPUT=path/to/input.txt
+
+# Run a specific day in release mode with default input path
+make run-release DAY=01 INPUT=puzzle_input
+
 # Run the current (most recent) day with input
 make run-current INPUT=path/to/input.txt
+
+# Run the current (most recent) day with default input path
+make run-current INPUT=puzzle_input
 ```
 
 #### Create a New Day
