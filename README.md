@@ -113,6 +113,12 @@ make fmt
 make check
 ```
 
+#### See All Available Commands
+
+```bash
+make help
+```
+
 ### Windows Native Build System (PowerShell)
 
 For Windows users who prefer to work natively (without WSL), a PowerShell script is provided:
@@ -186,18 +192,13 @@ For Windows users who prefer to work natively (without WSL), a PowerShell script
 .\run-aoc.ps1 setup
 ```
 
-#### Get Help
+#### Get Help | Show all available commands
 
 ```powershell
 # Show all available commands
 .\run-aoc.ps1 help
 ```
 
-### See All Available Commands
-
-```bash
-make help
-```
 
 ## Building with Nix
 
