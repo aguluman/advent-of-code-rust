@@ -85,7 +85,8 @@ function ShowHelp {
     Write-Host "Examples:"
     Write-Host "  .\run-aoc.ps1 build 01            # Build day01"
     Write-Host "  .\run-aoc.ps1 test 03             # Run tests for day03"
-    Write-Host "  .\run-aoc.ps1 run-day 02 ..\inputs\day02.txt  # Run day02 with specified input"
+    Write-Host "  .\run-aoc.ps1 run-day 02 \inputs\2024\day02.txt  # Run day02 with specified input"
+    Write-Host "  .\run-aoc.ps1 run-release 01 \inputs\2024\day01.txt  # Run day02 with specified input"
     Write-Host "  .\run-aoc.ps1 run-release 01 puzzle_input     # Build and run day01 in release mode with default input"
     Write-Host ""
     Write-Host "Input path handling:"
@@ -500,6 +501,13 @@ function RunCurrentDay {
         Write-Host "No day directories found!" -ForegroundColor Red
         exit 1
     }
+
+    # Convert relative paths to absolute before changing directory
+    if (-not [System.IO.Path]::IsPathRooted($inputPath)) {
+        $workspaceRoot = (Get-Location).Path
+        $inputPath = Join-Path $workspaceRoot $inputPath
+    }
+    
     if ([string]::IsNullOrEmpty($inputPath)) {
         Write-Host "Please specify an input file!" -ForegroundColor Red
         exit 1
