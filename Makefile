@@ -189,12 +189,12 @@ run-release:
 	echo "Building and running day$(DAY) in release mode with input $$INPUT_PATH..."; \
 	cd $(YEAR)/day$(DAY) && cargo build --release && \
 	if [ "$(shell uname -s)" = "Linux" ] || [ -d "/mnt/c" ]; then \
-		cat "$$INPUT_PATH" | ../../target/release/day$(DAY); \
+		cat $(PWD)/$$INPUT_PATH | ../../target/release/day$(DAY); \
 	else \
 		if command -v type >/dev/null 2>&1; then \
-			type "$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
+			type "$(PWD)/$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
 		else \
-			cat "$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
+			cat "$(PWD)/$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
 		fi; \
 	fi
 
