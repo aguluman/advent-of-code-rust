@@ -67,12 +67,16 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 check           : Run cargo check for all days"
     Write-Host "  .\run-aoc.ps1 clean           : Clean all build artifacts"
     Write-Host "  .\run-aoc.ps1 new-day         : Create a new day from template (interactive)"
-    Write-Host "  .\run-aoc.ps1 setup           : Setup project from scratch"
-    Write-Host "  .\run-aoc.ps1 run-day XX path/to/input.txt : Run a specific day with input"
+    Write-Host "  .\run-aoc.ps1 setup           : Setup project from scratch"    Write-Host "  .\run-aoc.ps1 run-day XX path/to/input.txt     : Run a specific day with input file"
     Write-Host "  .\run-aoc.ps1 run-release XX path/to/input.txt : Run a specific day in release mode"
-    Write-Host "  .\run-aoc.ps1 run-release XX puzzle_input    : Use default input path"
-    Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt : Run the current day with input"
-    Write-Host "  .\run-aoc.ps1 run-current puzzle_input      : Run the current day with default input"
+    Write-Host "  .\run-aoc.ps1 run-release XX puzzle_input      : Use default input path"
+    Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt    : Run the current day with input file"
+    Write-Host "  .\run-aoc.ps1 run-current puzzle_input         : Run the current day with default input"
+    Write-Host ""
+    Write-Host "Input path handling:"
+    Write-Host "  - Absolute paths: C:\path\to\input.txt"
+    Write-Host "  - Relative paths from workspace root: inputs/2024/day01.txt"
+    Write-Host "  - Root-relative paths: /inputs/2024/day01.txt (converted to workspace-relative)"
     Write-Host "  .\run-aoc.ps1 download XX       : Download puzzle input for day XX"
     Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"    
     Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
@@ -396,7 +400,9 @@ function RunDayRelease {
     if ([string]::IsNullOrEmpty($inputPath)) {
         # Default to the default input path
         $inputPath = $DefaultInputPath
-    }    # Handle puzzle_input special case
+    }
+    
+    # Handle puzzle_input special case
     if ($inputPath -eq "puzzle_input") {
         # Check repository inputs first - use absolute paths from workspace root
         $day = PadDayNumber $day
@@ -426,12 +432,30 @@ function RunDayRelease {
         }
     }
     else {
+        # Convert relative paths to absolute paths
+        if (-not [System.IO.Path]::IsPathRooted($inputPath)) {
+            $workspaceRoot = (Get-Location).Path
+            $inputPath = Join-Path $workspaceRoot $inputPath
+            Write-Host "Using absolute path: $inputPath" -ForegroundColor Yellow
+        }
+        
+        # Handle paths starting with \ by treating them as relative to workspace root
+        if ($inputPath -match '^\\') {
+            $workspaceRoot = (Get-Location).Path
+            $inputPath = Join-Path $workspaceRoot $inputPath.TrimStart('\')
+            Write-Host "Converted to workspace path: $inputPath" -ForegroundColor Yellow
+        }
+
         # Verify that the specified input path exists
         if (-not (Test-Path $inputPath)) {
             Write-Host "Input file not found: $inputPath" -ForegroundColor Red
+            Write-Host "Note: Input paths can be:"
+            Write-Host "  - Absolute paths: C:\path\to\input.txt"
+            Write-Host "  - Relative to workspace: inputs\2024\day02.txt"
+            Write-Host "  - Starting with \: \inputs\2024\day02.txt (relative to workspace)"
             exit 1
         }
-    }    Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
+    }Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
     Push-Location $dayDir
     cargo build --release
     # Get just the day directory name without the year prefix
@@ -629,7 +653,8 @@ function CheckSubmissionStatus {
             # Update answer file with correct statuses
             UpdateAnswerStatus -Year $Year -Day $day -Part 1 -Status "Correct"
             UpdateAnswerStatus -Year $Year -Day $day -Part 2 -Status "Correct"
-        } else {
+        }
+        else {
             # Fall back to checking individual completion messages
             if ($content -match "(one gold star: \*|You have completed Part One!)") {
                 $status.Part1 = $true
