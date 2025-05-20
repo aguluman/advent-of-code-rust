@@ -507,7 +507,7 @@ function RunCurrentDay {
         $workspaceRoot = (Get-Location).Path
         $inputPath = Join-Path $workspaceRoot $inputPath
     }
-    
+
     if ([string]::IsNullOrEmpty($inputPath)) {
         Write-Host "Please specify an input file!" -ForegroundColor Red
         exit 1
@@ -1128,7 +1128,7 @@ switch ($Command) {
                     # If Part 1 was successfully submitted, check status again and try Part 2
                     if ($result -eq $true -and $answers.Part2) {
                         # Brief pause to allow website to update
-                        Start-Sleep -Seconds 1
+                        Start-Sleep -Seconds 45
                         
                         # Refresh status after Part 1 submission
                         $status = CheckSubmissionStatus -Year $Year -Day $Day
