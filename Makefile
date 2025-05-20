@@ -371,29 +371,103 @@ run-submit:
 		echo "Please specify an input file using INPUT=path/to/input.txt or INPUT=download"; \
 		exit 1; \
 	fi; \
+	\
+	# If input is "download", get the input from AoC \
 	if [ "$$INPUT" = "download" ]; then \
 		$(MAKE) download DAY=$(DAY); \
 		INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
 	fi; \
+	\
+	# Check if input file exists \
 	if [ ! -f "$$INPUT" ]; then \
 		echo "Input file not found: $$INPUT"; \
 		exit 1; \
 	fi; \
+	\
+	# Check if day directory exists \
+	if [ ! -d "$(YEAR)/day$(DAY)" ]; then \
+		echo "Day $(DAY) does not exist!"; \
+		exit 1; \
+	fi; \
+	\
+	# Create answers directory \
 	mkdir -p answers/$(YEAR); \
 	ANSWER_FILE="answers/$(YEAR)/submit_day$(DAY).txt"; \
+	\
+	# Build the release binary \
+	echo "Building day$(DAY) in release mode..."; \
+	cd $(YEAR)/day$(DAY) && cargo build --release && cd ../../; \
+	\
+	# Get the binary path (workspace or day-specific) \
+	EXE_PATH="target/release/day$(DAY)"; \
+	if [ ! -f "$$EXE_PATH" ]; then \
+		EXE_PATH="$(YEAR)/day$(DAY)/target/release/day$(DAY)"; \
+		if [ ! -f "$$EXE_PATH" ]; then \
+			echo "Could not find executable for day $(DAY)"; \
+			exit 1; \
+		fi; \
+	fi; \
+	\
+	# Run the solution and capture output \
 	echo "Running day$(DAY) with input $$INPUT..."; \
-	OUTPUT=$$(cd $(YEAR)/day$(DAY) && cat $(PWD)/$$INPUT | cargo run --release); \
+	OUTPUT=$$(cat "$$INPUT" | ./$$EXE_PATH); \
 	echo "$$OUTPUT"; \
+	\
+	# Extract the answers \
 	PART1=$$(echo "$$OUTPUT" | grep "Part 1:" | cut -d':' -f2 | tr -d ' '); \
 	PART2=$$(echo "$$OUTPUT" | grep "Part 2:" | cut -d':' -f2 | tr -d ' '); \
+	\
+	# Save answers \
 	if [ ! -z "$$PART1" ]; then \
 		echo "Part1: $$PART1" > "$$ANSWER_FILE"; \
 	fi; \
 	if [ ! -z "$$PART2" ]; then \
 		echo "Part2: $$PART2" >> "$$ANSWER_FILE"; \
 	fi; \
+	\
+	if [ -z "$$PART1" ] && [ -z "$$PART2" ]; then \
+		echo "Could not extract answers from output"; \
+		exit 1; \
+	fi; \
+	\
 	echo "Answers saved to $$ANSWER_FILE"; \
-	echo "Checking submission status..."
+	\
+	# Check submission status \
+	STATUS_OUTPUT=$$($(MAKE) -s check-status DAY=$(DAY)); \
+	PART1_COMPLETED=$$(echo "$$STATUS_OUTPUT" | grep "Part 1: Completed"); \
+	PART2_COMPLETED=$$(echo "$$STATUS_OUTPUT" | grep "Part 2: Completed"); \
+	\
+	echo "$$STATUS_OUTPUT"; \
+	\
+	# Prompt to submit answers \
+	if [ ! -z "$$PART1" ] && [ -z "$$PART1_COMPLETED" ]; then \
+		read -p "Do you want to submit Part 1 answer? (y/n) " SUBMIT_PART1; \
+		if [ "$$SUBMIT_PART1" = "y" ]; then \
+			$(MAKE) submit DAY=$(DAY) PART=1; \
+			\
+			# If Part 1 was successfully submitted and Part 2 is available, check status again and try Part 2 \
+			if [ $$? -eq 0 ] && [ ! -z "$$PART2" ]; then \
+				echo "Waiting 45 seconds before checking status again..."; \
+				sleep 45; \
+				\
+				# Refresh status after Part 1 submission \
+				STATUS_OUTPUT=$$($(MAKE) -s check-status DAY=$(DAY)); \
+				PART2_COMPLETED=$$(echo "$$STATUS_OUTPUT" | grep "Part 2: Completed"); \
+				\
+				if [ -z "$$PART2_COMPLETED" ]; then \
+					read -p "Do you want to submit Part 2 answer? (y/n) " SUBMIT_PART2; \
+					if [ "$$SUBMIT_PART2" = "y" ]; then \
+						$(MAKE) submit DAY=$(DAY) PART=2; \
+					fi; \
+				fi; \
+			fi; \
+		fi; \
+	elif [ ! -z "$$PART2" ] && [ -z "$$PART2_COMPLETED" ] && [ ! -z "$$PART1_COMPLETED" ]; then \
+		read -p "Do you want to submit Part 2 answer? (y/n) " SUBMIT_PART2; \
+		if [ "$$SUBMIT_PART2" = "y" ]; then \
+			$(MAKE) submit DAY=$(DAY) PART=2; \
+		fi; \
+	fi
 
 # Show help
 help:
