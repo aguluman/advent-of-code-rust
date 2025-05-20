@@ -74,8 +74,8 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt : Run the current day with input"
     Write-Host "  .\run-aoc.ps1 run-current puzzle_input      : Run the current day with default input"
     Write-Host "  .\run-aoc.ps1 download XX       : Download puzzle input for day XX"
-    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"
-    Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
+    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"    Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
+    Write-Host "  .\run-aoc.ps1 force-submit XX P : Force-submit answer for day XX part P (bypasses completion check)"
     Write-Host "  .\run-aoc.ps1 run-submit XX path : Run day XX and prompt to submit answers"
     Write-Host "  .\run-aoc.ps1 run-submit XX download : Download input, run day XX, and prompt to submit"
     Write-Host "  .\run-aoc.ps1 help            : Show this help message"
@@ -737,8 +737,7 @@ function SubmitAnswer {
         Write-Host "Puzzle is not available." -ForegroundColor Red
         return $false
     }
-    
-    # Check if already completed
+      # Check if already completed
     if (($Part -eq 1 -and $status.Part1) -or ($Part -eq 2 -and $status.Part2)) {
         Write-Host "You have already solved Year $Year Day $day Part $Part!" -ForegroundColor Green
         return $true
@@ -746,7 +745,9 @@ function SubmitAnswer {
     
     # Check if part 2 is unlocked
     if ($Part -eq 2 -and -not $status.Part1) {
-        Write-Host "You need to solve Part 1 before you can submit Part 2." -ForegroundColor Yellow
+        Write-Host "The API reports that Part 1 is not completed, which is required before submitting Part 2." -ForegroundColor Yellow
+        Write-Host "If you believe this is incorrect and have already completed Part 1, use 'force-submit' instead:" -ForegroundColor Yellow
+        Write-Host "  .\run-aoc.ps1 force-submit $day 2" -ForegroundColor Cyan
         return $false
     }
     try {
@@ -1067,9 +1068,99 @@ switch ($Command) {
                     SubmitAnswer -Year $Year -Day $Day -Part 2 -Answer $answers.Part2
                 }
             }
+        }        else {
+            Write-Host "Could not extract answers from output" -ForegroundColor Red
+        }
+    }
+    "force-submit" {
+        if (-not $Day) {
+            Write-Host "Please specify a day!" -ForegroundColor Red
+            exit 1
+        }
+        
+        $part = if ($InputPath) { [int]$InputPath } else { 1 }
+        
+        # Read the saved answers
+        $answerFile = Join-Path (Get-Location).Path "answers\$Year\submit_day$Day.txt"
+        if (-not (Test-Path $answerFile)) {
+            Write-Host "No saved answers found for Day $Day!" -ForegroundColor Red
+            exit 1
+        }
+        
+        $answer = $null
+        foreach ($line in (Get-Content $answerFile)) {
+            if ($line -match "^Part$part`:" ) {
+                if ($line -match "^Part$part`:(.*?)(\s*\[Status\:|\s*$)") {
+                    $answer = $Matches[1].Trim()
+                }
+                break
+            }
+        }
+        
+        if ($answer) {            # Directly submit without checking submission status
+            Write-Host "Force submitting answer for Year ${Year} Day ${Day} Part ${part}: ${answer}" -ForegroundColor Cyan
+            
+            # Get session token
+            $SessionToken = GetSessionToken
+            
+            try {
+                $day = PadDayNumber $Day
+                $dayNum = [int]$day
+                
+                $url = "https://adventofcode.com/$Year/day/$dayNum/answer"
+                $headers = @{
+                    "Cookie"     = "session=$SessionToken"
+                    "User-Agent" = "github.com/advent-of-code-rust"
+                }
+                $formData = @{
+                    "level"  = $part
+                    "answer" = $answer
+                }
+                
+                $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $formData -UseBasicParsing
+                
+                # Parse the response to determine if the answer was correct
+                $content = $response.Content
+                
+                if ($content -match "That's the right answer") {
+                    Write-Host "Correct answer! Well done." -ForegroundColor Green
+                    # Update status in answers file
+                    UpdateAnswerStatus -Year $Year -Day $day -Part $part -Status "Correct"
+                }
+                elseif ($content -match "You gave an answer too recently") {
+                    # Extract the time to wait
+                    if ($content -match "You have ([0-9]+m [0-9]+s) left to wait") {
+                        $waitTime = $Matches[1]
+                        Write-Host "You need to wait $waitTime before submitting again." -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host "You need to wait before submitting again." -ForegroundColor Yellow
+                    }
+                }
+                elseif ($content -match "That's not the right answer") {
+                    if ($content -match "your answer is too (high|low)") {
+                        $direction = $Matches[1]
+                        Write-Host "Incorrect answer. Your answer is too $direction." -ForegroundColor Red
+                    }
+                    else {
+                        Write-Host "Incorrect answer." -ForegroundColor Red
+                    }
+                    # Update status in answers file
+                    UpdateAnswerStatus -Year $Year -Day $day -Part $part -Status "Incorrect"
+                }
+                elseif ($content -match "You don't seem to be solving the right level") {
+                    Write-Host "You've already solved this part or are not on this level yet." -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host "Unexpected response from Advent of Code. Please check manually." -ForegroundColor Red
+                }
+            }
+            catch {
+                Write-Host "Error submitting answer: $_" -ForegroundColor Red
+            }
         }
         else {
-            Write-Host "Could not extract answers from output" -ForegroundColor Red
+            Write-Host "No answer found for Part $part!" -ForegroundColor Red
         }
     }
     default {
