@@ -1,8 +1,27 @@
 @echo off
-REM run-aoc.bat - Helper script for Advent of Code 2024 Rust solutions
+REM run-aoc.bat - Helper script for Advent of Code Rust solutions
 REM Usage: run-aoc.bat DAY [INPUT_PATH]
 
 setlocal enabledelayedexpansion
+
+REM Find the most recent year folder
+set YEAR=
+for /d %%Y in (20??) do (
+    if "!YEAR!"=="" (
+        set YEAR=%%Y
+    ) else (
+        if %%Y GTR !YEAR! (
+            set YEAR=%%Y
+        )
+    )
+)
+
+if "!YEAR!"=="" (
+    echo No year directories found. Please create a directory like 2024 first.
+    exit /b 1
+)
+
+echo Using year: !YEAR!
 
 REM Check if day parameter is provided
 if "%1"=="" (
@@ -12,12 +31,12 @@ if "%1"=="" (
 )
 
 set DAY=%1
-set DAY_DIR=day%DAY%
+set DAY_DIR=!YEAR!\day%DAY%
 set INPUT_PATH=%2
 
 REM If INPUT_PATH is "puzzle_input", use repository input paths or default
 if "%INPUT_PATH%"=="puzzle_input" (
-    set REPO_INPUT_DIR=%CD%\inputs\2024
+    set REPO_INPUT_DIR=%CD%\inputs\!YEAR!
     set DAY_SPECIFIC_INPUT=%REPO_INPUT_DIR%\day%DAY%.txt
     set GENERIC_INPUT=%REPO_INPUT_DIR%\input.txt
     
@@ -56,6 +75,6 @@ if not exist "%DAY_DIR%" (
 )
 
 echo Building and running day%DAY% in release mode with input %INPUT_PATH%...
-cd %DAY_DIR% && cargo build --release && type "%INPUT_PATH%" | .\target\release\day%DAY%.exe
+cd %DAY_DIR% && cargo build --release && type "%INPUT_PATH%" | ..\..\target\release\day%DAY%.exe
 
 exit /b 0

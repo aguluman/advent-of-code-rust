@@ -39,5 +39,7 @@ Cargo.lock
 **/*.rs.bk
 
 # Added by cargo
-
 /target
+
+# Design docs
+/docs

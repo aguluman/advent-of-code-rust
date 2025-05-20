@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "day01",
-    "day02",
-    "day03",
+    "2024/day01",
+    "2024/day02",
+    "2024/day03",
     # Add new days as they are created
 ]
 resolver = "3"

@@ -1,4 +1,4 @@
-# run-aoc.ps1 - Helper script for Advent of Code 2024 Rust solutions
+# run-aoc.ps1 - Helper script for Advent of Code Rust solutions
 # This script replaces the functionality of the Makefile with Windows-native PowerShell
 
 param(
@@ -12,10 +12,19 @@ param(
     [string]$InputPath
 )
 
+# Find the most recent year folder
+$AvailableYears = Get-ChildItem -Directory -Filter "20??" | Sort-Object -Descending
+if ($AvailableYears.Count -eq 0) {
+    Write-Host "No year directories found. Please create a directory like 2024 first." -ForegroundColor Red
+    exit 1
+}
+$Year = $AvailableYears[0].Name
+Write-Host "Using year: $Year" -ForegroundColor Cyan
+
 # Constants
 # You can modify DefaultInputPath to point to your preferred location if you don't use the repo inputs
 $DefaultInputPath = "C:\Users\chukw\Downloads\input.txt"
-$RepoInputDir = Join-Path (Get-Location).Path "inputs\2024"
+$RepoInputDir = Join-Path (Get-Location).Path "inputs\$Year"
 
 # Check if inputs directory exists, create it if not
 if (-not (Test-Path $RepoInputDir -PathType Container)) {
@@ -30,7 +39,7 @@ if (-not (Test-Path $RepoInputDir -PathType Container)) {
 
 # Helper Functions
 function GetDayDirectories {
-    return Get-ChildItem -Directory -Filter "day*" | ForEach-Object { $_.Name }
+    return Get-ChildItem -Path "$Year" -Directory -Filter "day*" | ForEach-Object { Join-Path $Year $_.Name }
 }
 
 function GetCurrentDay {
@@ -42,7 +51,7 @@ function GetCurrentDay {
 }
 
 function ShowHelp {
-    Write-Host "Advent of Code 2024 - Rust PowerShell Script Help" -ForegroundColor Cyan
+    Write-Host "Advent of Code $Year - Rust PowerShell Script Help" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Available commands:"
     Write-Host "  .\run-aoc.ps1 all             : Run tests and linting (default)"
@@ -99,7 +108,7 @@ function BuildSpecificDay {
     param([string]$day)
     
     $day = PadDayNumber $day
-    $dayDir = "day$day"
+    $dayDir = "$Year/day$day"
     
     if (-not (Test-Path $dayDir -PathType Container)) {
         Write-Host "Day $day does not exist!" -ForegroundColor Red
@@ -138,7 +147,7 @@ function TestSpecificDay {
     param([string]$day)
     
     $day = PadDayNumber $day
-    $dayDir = "day$day"
+    $dayDir = "$Year/day$day"
     
     if (-not (Test-Path $dayDir -PathType Container)) {
         Write-Host "Day $day does not exist!" -ForegroundColor Red
@@ -213,12 +222,18 @@ function CreateNewDay {
     $day = Read-Host "Enter day number (e.g., 04)"
     
     $day = PadDayNumber $day
-    $dayDir = "day$day"
+    $dayDir = "$Year/day$day"
     
     # Check if the day already exists
     if (Test-Path $dayDir -PathType Container) {
         Write-Host "$dayDir already exists!" -ForegroundColor Red
         exit 1
+    }
+    
+    # Make sure the year directory exists
+    if (-not (Test-Path $Year -PathType Container)) {
+        Write-Host "Creating $Year directory..." -ForegroundColor Cyan
+        New-Item -Path $Year -ItemType Directory -Force | Out-Null
     }
     
     Write-Host "Creating $dayDir..." -ForegroundColor Cyan
@@ -230,7 +245,32 @@ function CreateNewDay {
     Copy-Item -Recurse -Force "templates/day_template/*" "$dayDir/"
     
     # Update Cargo.toml
-    (Get-Content "$dayDir/Cargo.toml") -replace 'day_template', $dayDir | Set-Content "$dayDir/Cargo.toml"
+    (Get-Content "$dayDir/Cargo.toml") -replace 'day_template', "day$day" | Set-Content "$dayDir/Cargo.toml"
+    
+    # Update workspace Cargo.toml to include the new day
+    Write-Host "Updating workspace Cargo.toml..." -ForegroundColor Cyan
+    $cargoToml = Get-Content "Cargo.toml"
+    $updatedCargoToml = @()
+    $commentFound = $false
+    
+    foreach ($line in $cargoToml) {
+        if ($line -eq '    # Add new days as they are created' -and -not $commentFound) {
+            $updatedCargoToml += "    `"$Year/day$day`","
+            $updatedCargoToml += $line
+            $commentFound = $true
+        }
+        else {
+            $updatedCargoToml += $line
+        }
+    }
+    
+    if (-not $commentFound) {
+        Write-Host "Could not find comment marker in Cargo.toml. Please add `"$Year/day$day`" manually." -ForegroundColor Yellow
+    }
+    else {
+        $updatedCargoToml | Set-Content "Cargo.toml"
+        Write-Host "Updated Cargo.toml with new day." -ForegroundColor Green
+    }
     
     Write-Host "Created $dayDir successfully!" -ForegroundColor Green
 }
@@ -316,7 +356,7 @@ function RunDay {
     )
     
     $day = PadDayNumber $day
-    $dayDir = "day$day"
+    $dayDir = "$Year/day$day"
     
     if (-not (Test-Path $dayDir -PathType Container)) {
         Write-Host "Day $day does not exist!" -ForegroundColor Red
@@ -341,7 +381,7 @@ function RunDayRelease {
     )
     
     $day = PadDayNumber $day
-    $dayDir = "day$day"
+    $dayDir = "$Year/day$day"
     
     if (-not (Test-Path $dayDir -PathType Container)) {
         Write-Host "Day $day does not exist!" -ForegroundColor Red
@@ -355,8 +395,8 @@ function RunDayRelease {
         # Check repository inputs first - use absolute paths from workspace root
         $day = PadDayNumber $day
         $workspaceRoot = (Get-Location).Path
-        $daySpecificInput = Join-Path $workspaceRoot "inputs\2024\day$day.txt"
-        $genericInput = Join-Path $workspaceRoot "inputs\2024\input.txt"
+        $daySpecificInput = Join-Path $workspaceRoot "inputs\$Year\day$day.txt"
+        $genericInput = Join-Path $workspaceRoot "inputs\$Year\input.txt"
         
         Write-Host "Checking for day-specific input at: $daySpecificInput" -ForegroundColor Yellow
         Write-Host "Checking for generic input at: $genericInput" -ForegroundColor Yellow
@@ -388,9 +428,11 @@ function RunDayRelease {
     }    Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
     Push-Location $dayDir
     cargo build --release
+    # Get just the day directory name without the year prefix
+    $dayName = ($dayDir -split '/')[-1]
     
     # Check if the executable exists in the day's target directory
-    $exePath = Join-Path (Get-Location).Path "target\release\$($dayDir).exe"
+    $exePath = Join-Path (Get-Location).Path "target\release\$dayName.exe"
     
     if (Test-Path $exePath) {
         Write-Host "Running $exePath with input from $inputPath" -ForegroundColor Green
@@ -399,9 +441,8 @@ function RunDayRelease {
     else {
         # Check if the executable exists in the workspace target directory instead
         Pop-Location
-        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$($dayDir).exe"
+        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$dayName.exe"
         Push-Location $dayDir
-        
         if (Test-Path $workspaceTarget) {
             Write-Host "Using workspace target: $workspaceTarget" -ForegroundColor Yellow
             Get-Content $inputPath | & "$workspaceTarget"
@@ -410,6 +451,9 @@ function RunDayRelease {
             Write-Host "Executable not found at: $exePath" -ForegroundColor Red
             Write-Host "Also not found at: $workspaceTarget" -ForegroundColor Red
             Write-Host "Trying fallback method with cargo run..." -ForegroundColor Yellow
+            # Go back to the day directory and run cargo directly
+            Pop-Location
+            Push-Location $dayDir
             Get-Content $inputPath | cargo run --release
         }
     }
@@ -427,14 +471,13 @@ function RunCurrentDay {
     if ([string]::IsNullOrEmpty($inputPath)) {
         Write-Host "Please specify an input file!" -ForegroundColor Red
         exit 1
-    }
-    # Handle puzzle_input special case
+    }    # Handle puzzle_input special case
     if ($inputPath -eq "puzzle_input") {
         # Extract day number from current day directory
-        $dayNum = $currentDay -replace "day", ""
+        $dayNum = ($currentDay -split '/')[-1] -replace "day", ""
         $workspaceRoot = (Get-Location).Path
-        $daySpecificInput = Join-Path $workspaceRoot "inputs\2024\day$dayNum.txt"
-        $genericInput = Join-Path $workspaceRoot "inputs\2024\input.txt"
+        $daySpecificInput = Join-Path $workspaceRoot "inputs\$Year\day$dayNum.txt"
+        $genericInput = Join-Path $workspaceRoot "inputs\$Year\input.txt"
         
         Write-Host "Checking for day-specific input at: $daySpecificInput" -ForegroundColor Yellow
         Write-Host "Checking for generic input at: $genericInput" -ForegroundColor Yellow
@@ -465,9 +508,11 @@ function RunCurrentDay {
         }
     }    Write-Host "Running $currentDay with input $inputPath..." -ForegroundColor Cyan
     Push-Location $currentDay
+    # Extract just the day directory name without the year prefix
+    $dayName = ($currentDay -split '/')[-1]
     
     # Check if the executable exists in the day's target directory
-    $exePath = Join-Path (Get-Location).Path "target\release\$($currentDay).exe"
+    $exePath = Join-Path (Get-Location).Path "target\release\$dayName.exe"
     
     if (Test-Path $exePath) {
         Write-Host "Using release build executable: $exePath" -ForegroundColor Green
@@ -476,7 +521,7 @@ function RunCurrentDay {
     else {
         # Check if the executable exists in the workspace target directory instead
         Pop-Location
-        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$($currentDay).exe"
+        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$dayName.exe"
         Push-Location $currentDay
         
         if (Test-Path $workspaceTarget) {

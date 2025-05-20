@@ -4,28 +4,29 @@
 all: test lint
 
 # Variables
-DAYS := $(wildcard day*)
-CURRENT_DAY := $(shell ls -d day* | sort -r | head -n 1)
+YEAR := $(shell ls -d [0-9][0-9][0-9][0-9] | sort -r | head -n 1)
+DAYS := $(wildcard $(YEAR)/day*)
+CURRENT_DAY := $(shell ls -d $(YEAR)/day* 2>/dev/null | sort -r | head -n 1)
 
 # Build all days in debug mode
 build:
 	@echo "Building all days..."
 	@for day in $(DAYS); do \
 		echo "Building $$day..."; \
-		cd $$day && cargo build && cd ..; \
+		cd $$day && cargo build && cd ../..; \
 	done
 
 # Build a specific day
 build-%:
 	@echo "Building day $*..."
-	@cd day$* && cargo build
+	@cd $(YEAR)/day$* && cargo build
 
 # Build all days in release mode
 release:
 	@echo "Building all days in release mode..."
 	@for day in $(DAYS); do \
 		echo "Building $$day in release mode..."; \
-		cd $$day && cargo build --release && cd ..; \
+		cd $$day && cargo build --release && cd ../..; \
 	done
 
 # Run tests for all days
@@ -33,13 +34,13 @@ test:
 	@echo "Running tests for all days..."
 	@for day in $(DAYS); do \
 		echo "Testing $$day..."; \
-		cd $$day && cargo test && cd ..; \
+		cd $$day && cargo test && cd ../..; \
 	done
 
 # Run tests for a specific day
 test-%:
 	@echo "Testing day $*..."
-	@cd day$* && cargo test
+	@cd $(YEAR)/day$* && cargo test
 
 # Lint all days
 lint: clippy fmt-check
@@ -49,7 +50,7 @@ clippy:
 	@echo "Running clippy on all days..."
 	@for day in $(DAYS); do \
 		echo "Linting $$day with clippy..."; \
-		cd $$day && cargo clippy --all-targets --all-features -- -D warnings && cd ..; \
+		cd $$day && cargo clippy --all-targets --all-features -- -D warnings && cd ../..; \
 	done
 
 # Format all code
@@ -57,7 +58,7 @@ fmt:
 	@echo "Formatting code for all days..."
 	@for day in $(DAYS); do \
 		echo "Formatting $$day..."; \
-		cd $$day && cargo fmt && cd ..; \
+		cd $$day && cargo fmt && cd ../..; \
 	done
 
 # Check formatting for all code
@@ -65,7 +66,7 @@ fmt-check:
 	@echo "Checking formatting for all days..."
 	@for day in $(DAYS); do \
 		echo "Checking formatting for $$day..."; \
-		cd $$day && cargo fmt -- --check && cd ..; \
+		cd $$day && cargo fmt -- --check && cd ../..; \
 	done
 
 # Run code checks
@@ -73,7 +74,7 @@ check:
 	@echo "Running cargo check for all days..."
 	@for day in $(DAYS); do \
 		echo "Checking $$day..."; \
-		cd $$day && cargo check && cd ..; \
+		cd $$day && cargo check && cd ../..; \
 	done
 
 # Run benchmarks using criterion
@@ -81,7 +82,7 @@ benchmark:
 	@echo "Running benchmarks for all days..."
 	@for day in $(DAYS); do \
 		echo "Benchmarking $$day..."; \
-		cd $$day && cargo bench && cd ..; \
+		cd $$day && cargo bench && cd ../..; \
 	done
 
 # Clean all build artifacts
@@ -89,21 +90,23 @@ clean:
 	@echo "Cleaning build artifacts..."
 	@for day in $(DAYS); do \
 		echo "Cleaning $$day..."; \
-		cd $$day && cargo clean && cd ..; \
+		cd $$day && cargo clean && cd ../..; \
 	done
 
 # Create a new day from template
 new-day:
 	@read -p "Enter day number (e.g., 04): " day; \
-	if [ -d "day$$day" ]; then \
-		echo "day$$day already exists!"; \
+	if [ -d "$(YEAR)/day$$day" ]; then \
+		echo "$(YEAR)/day$$day already exists!"; \
 		exit 1; \
 	fi; \
-	echo "Creating day$$day..."; \
-	mkdir -p "day$$day/src"; \
-	cp -r templates/day_template/* "day$$day/"; \
-	sed -i "s/day_template/day$$day/g" "day$$day/Cargo.toml"; \
-	echo "Created day$$day successfully!"
+	echo "Creating $(YEAR)/day$$day..."; \
+	mkdir -p "$(YEAR)/day$$day/src"; \
+	cp -r templates/day_template/* "$(YEAR)/day$$day/"; \
+	sed -i "s/day_template/day$$day/g" "$(YEAR)/day$$day/Cargo.toml"; \
+	echo "Updating workspace Cargo.toml..."; \
+	sed -i '/# Add new days as they are created/i \    "$(YEAR)/day'$$day'",' Cargo.toml; \
+	echo "Created $(YEAR)/day$$day successfully!"
 
 # Setup project from scratch
 setup:
@@ -127,7 +130,7 @@ run-day:
 		exit 1; \
 	fi; \
 	echo "Running day$(DAY) with input $(INPUT)..."; \
-	cd day$(DAY) && cargo run < $(INPUT)
+	cd $(YEAR)/day$(DAY) && cargo run < $(INPUT)
 
 # Run a specific day with input file in release mode
 run-release:
@@ -140,19 +143,19 @@ run-release:
 		exit 1; \
 	fi
 	@if [ "$(INPUT)" = "puzzle_input" ]; then \
-		if [ ! -d "inputs/2024" ]; then \
+		if [ ! -d "inputs/$(YEAR)" ]; then \
 			echo "Notice: Repository inputs directory not found."; \
-			echo "Creating directory: inputs/2024"; \
-			mkdir -p inputs/2024; \
-			echo "Created inputs/2024 - You can now place your puzzle inputs there."; \
-			echo "- Day-specific files: inputs/2024/day01.txt, etc."; \
-			echo "- Generic input file: inputs/2024/input.txt"; \
+			echo "Creating directory: inputs/$(YEAR)"; \
+			mkdir -p inputs/$(YEAR); \
+			echo "Created inputs/$(YEAR) - You can now place your puzzle inputs there."; \
+			echo "- Day-specific files: inputs/$(YEAR)/day01.txt, etc."; \
+			echo "- Generic input file: inputs/$(YEAR)/input.txt"; \
 		fi; \
-		if [ -f "inputs/2024/day$(DAY).txt" ]; then \
-			INPUT_PATH="inputs/2024/day$(DAY).txt"; \
+		if [ -f "inputs/$(YEAR)/day$(DAY).txt" ]; then \
+			INPUT_PATH="inputs/$(YEAR)/day$(DAY).txt"; \
 			echo "Using day-specific input file: $$INPUT_PATH"; \
-		elif [ -f "inputs/2024/input.txt" ]; then \
-			INPUT_PATH="inputs/2024/input.txt"; \
+		elif [ -f "inputs/$(YEAR)/input.txt" ]; then \
+			INPUT_PATH="inputs/$(YEAR)/input.txt"; \
 			echo "Using generic input file: $$INPUT_PATH"; \
 		elif [ -d "/mnt/c" ]; then \
 			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \
@@ -168,14 +171,14 @@ run-release:
 		INPUT_PATH="$(INPUT)"; \
 	fi; \
 	echo "Building and running day$(DAY) in release mode with input $$INPUT_PATH..."; \
-	cd day$(DAY) && cargo build --release && \
+	cd $(YEAR)/day$(DAY) && cargo build --release && \
 	if [ "$(shell uname -s)" = "Linux" ] || [ -d "/mnt/c" ]; then \
-		cat "$$INPUT_PATH" | ../target/release/day$(DAY); \
+		cat "$$INPUT_PATH" | ../../target/release/day$(DAY); \
 	else \
 		if command -v type >/dev/null 2>&1; then \
-			type "$$INPUT_PATH" | ../target/release/day$(DAY).exe; \
+			type "$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
 		else \
-			cat "$$INPUT_PATH" | ../target/release/day$(DAY).exe; \
+			cat "$$INPUT_PATH" | ../../target/release/day$(DAY).exe; \
 		fi; \
 	fi
 
@@ -186,18 +189,18 @@ run-current:
 		exit 1; \
 	fi
 	@if [ "$(INPUT)" = "puzzle_input" ]; then \
-		DAY_NUM=$$(echo $(CURRENT_DAY) | sed 's/day//'); \
-		if [ ! -d "inputs/2024" ]; then \
+		DAY_NUM=$$(echo $(CURRENT_DAY) | sed 's/.*day//'); \
+		if [ ! -d "inputs/$(YEAR)" ]; then \
 			echo "Notice: Repository inputs directory not found."; \
-			echo "Creating directory: inputs/2024"; \
-			mkdir -p inputs/2024; \
-			echo "Created inputs/2024 - You can now place your puzzle inputs there."; \
+			echo "Creating directory: inputs/$(YEAR)"; \
+			mkdir -p inputs/$(YEAR); \
+			echo "Created inputs/$(YEAR) - You can now place your puzzle inputs there."; \
 		fi; \
-		if [ -f "inputs/2024/day$$DAY_NUM.txt" ]; then \
-			INPUT_PATH="inputs/2024/day$$DAY_NUM.txt"; \
+		if [ -f "inputs/$(YEAR)/day$$DAY_NUM.txt" ]; then \
+			INPUT_PATH="inputs/$(YEAR)/day$$DAY_NUM.txt"; \
 			echo "Using day-specific input file: $$INPUT_PATH"; \
-		elif [ -f "inputs/2024/input.txt" ]; then \
-			INPUT_PATH="inputs/2024/input.txt"; \
+		elif [ -f "inputs/$(YEAR)/input.txt" ]; then \
+			INPUT_PATH="inputs/$(YEAR)/input.txt"; \
 			echo "Using generic input file: $$INPUT_PATH"; \
 		elif [ -d "/mnt/c" ]; then \
 			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \

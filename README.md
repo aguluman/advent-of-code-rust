@@ -1,6 +1,6 @@
-# Advent of Code 2024 - Rust Solutions
+# Advent of Code - Rust Solutions
 
-This repository contains solutions for the [Advent of Code 2024](https://adventofcode.com/2024) puzzles, implemented in Rust.
+This repository contains solutions for the [Advent of Code 2024](https://adventofcode.com/2024) and other years puzzles, implemented in Rust.
 
 ## Development Environment Setup
 
