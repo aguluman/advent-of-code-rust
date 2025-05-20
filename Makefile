@@ -140,12 +140,29 @@ run-release:
 		exit 1; \
 	fi
 	@if [ "$(INPUT)" = "puzzle_input" ]; then \
-		if [ -d "/mnt/c" ]; then \
+		if [ ! -d "inputs/2024" ]; then \
+			echo "Notice: Repository inputs directory not found."; \
+			echo "Creating directory: inputs/2024"; \
+			mkdir -p inputs/2024; \
+			echo "Created inputs/2024 - You can now place your puzzle inputs there."; \
+			echo "- Day-specific files: inputs/2024/day01.txt, etc."; \
+			echo "- Generic input file: inputs/2024/input.txt"; \
+		fi; \
+		if [ -f "inputs/2024/day$(DAY).txt" ]; then \
+			INPUT_PATH="inputs/2024/day$(DAY).txt"; \
+			echo "Using day-specific input file: $$INPUT_PATH"; \
+		elif [ -f "inputs/2024/input.txt" ]; then \
+			INPUT_PATH="inputs/2024/input.txt"; \
+			echo "Using generic input file: $$INPUT_PATH"; \
+		elif [ -d "/mnt/c" ]; then \
 			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		elif [ "$(shell uname -s)" = "Linux" ]; then \
 			INPUT_PATH="$(HOME)/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		else \
 			INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		fi; \
 	else \
 		INPUT_PATH="$(INPUT)"; \
@@ -169,12 +186,28 @@ run-current:
 		exit 1; \
 	fi
 	@if [ "$(INPUT)" = "puzzle_input" ]; then \
-		if [ -d "/mnt/c" ]; then \
+		DAY_NUM=$$(echo $(CURRENT_DAY) | sed 's/day//'); \
+		if [ ! -d "inputs/2024" ]; then \
+			echo "Notice: Repository inputs directory not found."; \
+			echo "Creating directory: inputs/2024"; \
+			mkdir -p inputs/2024; \
+			echo "Created inputs/2024 - You can now place your puzzle inputs there."; \
+		fi; \
+		if [ -f "inputs/2024/day$$DAY_NUM.txt" ]; then \
+			INPUT_PATH="inputs/2024/day$$DAY_NUM.txt"; \
+			echo "Using day-specific input file: $$INPUT_PATH"; \
+		elif [ -f "inputs/2024/input.txt" ]; then \
+			INPUT_PATH="inputs/2024/input.txt"; \
+			echo "Using generic input file: $$INPUT_PATH"; \
+		elif [ -d "/mnt/c" ]; then \
 			INPUT_PATH="/mnt/c/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		elif [ "$(shell uname -s)" = "Linux" ]; then \
 			INPUT_PATH="$(HOME)/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		else \
 			INPUT_PATH="C:/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT_PATH"; \
 		fi; \
 	else \
 		INPUT_PATH="$(INPUT)"; \

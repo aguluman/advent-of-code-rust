@@ -9,11 +9,24 @@ param(
     [string]$Day,
     
     [Parameter(Position = 2)]
-    [string]$Input
+    [string]$InputPath
 )
 
 # Constants
+# You can modify DefaultInputPath to point to your preferred location if you don't use the repo inputs
 $DefaultInputPath = "C:\Users\chukw\Downloads\input.txt"
+$RepoInputDir = Join-Path (Get-Location).Path "inputs\2024"
+
+# Check if inputs directory exists, create it if not
+if (-not (Test-Path $RepoInputDir -PathType Container)) {
+    Write-Host "Notice: Repository inputs directory not found at: $RepoInputDir" -ForegroundColor Yellow
+    Write-Host "For best experience, consider creating this directory and placing your puzzle inputs there." -ForegroundColor Yellow
+    Write-Host "Creating directory structure for you..." -ForegroundColor Cyan
+    New-Item -Path $RepoInputDir -ItemType Directory -Force | Out-Null
+    Write-Host "Created $RepoInputDir - You can now place your puzzle inputs there as:" -ForegroundColor Green
+    Write-Host "- Day-specific files: $RepoInputDir\day01.txt, $RepoInputDir\day02.txt, etc." -ForegroundColor Green
+    Write-Host "- Generic input file: $RepoInputDir\input.txt" -ForegroundColor Green
+}
 
 # Helper Functions
 function GetDayDirectories {
@@ -50,6 +63,7 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 run-release XX path/to/input.txt : Run a specific day in release mode"
     Write-Host "  .\run-aoc.ps1 run-release XX puzzle_input    : Use default input path"
     Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt : Run the current day with input"
+    Write-Host "  .\run-aoc.ps1 run-current puzzle_input      : Run the current day with default input"
     Write-Host "  .\run-aoc.ps1 help            : Show this help message"
     Write-Host ""
     Write-Host "Examples:"
@@ -333,20 +347,72 @@ function RunDayRelease {
         Write-Host "Day $day does not exist!" -ForegroundColor Red
         exit 1
     }
-    
     if ([string]::IsNullOrEmpty($inputPath)) {
         # Default to the default input path
         $inputPath = $DefaultInputPath
-    }
-    
-    # Handle puzzle_input special case
+    }    # Handle puzzle_input special case
     if ($inputPath -eq "puzzle_input") {
-        $inputPath = $DefaultInputPath
+        # Check repository inputs first - use absolute paths from workspace root
+        $day = PadDayNumber $day
+        $workspaceRoot = (Get-Location).Path
+        $daySpecificInput = Join-Path $workspaceRoot "inputs\2024\day$day.txt"
+        $genericInput = Join-Path $workspaceRoot "inputs\2024\input.txt"
+        
+        Write-Host "Checking for day-specific input at: $daySpecificInput" -ForegroundColor Yellow
+        Write-Host "Checking for generic input at: $genericInput" -ForegroundColor Yellow
+        
+        if (Test-Path $daySpecificInput) {
+            Write-Host "Using day-specific input file" -ForegroundColor Green
+            $inputPath = $daySpecificInput
+        }
+        elseif (Test-Path $genericInput) {
+            Write-Host "Using generic input file" -ForegroundColor Green
+            $inputPath = $genericInput
+        }
+        else {
+            Write-Host "Using default input path" -ForegroundColor Yellow
+            # Default to downloads folder
+            $inputPath = $DefaultInputPath
+            if (-not (Test-Path $inputPath)) {
+                Write-Host "Warning: Default input path does not exist: $inputPath" -ForegroundColor Red
+                exit 1
+            }
+        }
     }
-      Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
+    else {
+        # Verify that the specified input path exists
+        if (-not (Test-Path $inputPath)) {
+            Write-Host "Input file not found: $inputPath" -ForegroundColor Red
+            exit 1
+        }
+    }    Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
     Push-Location $dayDir
     cargo build --release
-    Get-Content $inputPath | & ".\target\release\$($dayDir).exe"
+    
+    # Check if the executable exists in the day's target directory
+    $exePath = Join-Path (Get-Location).Path "target\release\$($dayDir).exe"
+    
+    if (Test-Path $exePath) {
+        Write-Host "Running $exePath with input from $inputPath" -ForegroundColor Green
+        Get-Content $inputPath | & "$exePath"
+    }
+    else {
+        # Check if the executable exists in the workspace target directory instead
+        Pop-Location
+        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$($dayDir).exe"
+        Push-Location $dayDir
+        
+        if (Test-Path $workspaceTarget) {
+            Write-Host "Using workspace target: $workspaceTarget" -ForegroundColor Yellow
+            Get-Content $inputPath | & "$workspaceTarget"
+        }
+        else {
+            Write-Host "Executable not found at: $exePath" -ForegroundColor Red
+            Write-Host "Also not found at: $workspaceTarget" -ForegroundColor Red
+            Write-Host "Trying fallback method with cargo run..." -ForegroundColor Yellow
+            Get-Content $inputPath | cargo run --release
+        }
+    }
     Pop-Location
 }
 
@@ -358,15 +424,71 @@ function RunCurrentDay {
         Write-Host "No day directories found!" -ForegroundColor Red
         exit 1
     }
-    
     if ([string]::IsNullOrEmpty($inputPath)) {
         Write-Host "Please specify an input file!" -ForegroundColor Red
         exit 1
     }
-    
-    Write-Host "Running $currentDay with input $inputPath..." -ForegroundColor Cyan
+    # Handle puzzle_input special case
+    if ($inputPath -eq "puzzle_input") {
+        # Extract day number from current day directory
+        $dayNum = $currentDay -replace "day", ""
+        $workspaceRoot = (Get-Location).Path
+        $daySpecificInput = Join-Path $workspaceRoot "inputs\2024\day$dayNum.txt"
+        $genericInput = Join-Path $workspaceRoot "inputs\2024\input.txt"
+        
+        Write-Host "Checking for day-specific input at: $daySpecificInput" -ForegroundColor Yellow
+        Write-Host "Checking for generic input at: $genericInput" -ForegroundColor Yellow
+        
+        if (Test-Path $daySpecificInput) {
+            Write-Host "Using day-specific input file" -ForegroundColor Green
+            $inputPath = $daySpecificInput
+        }
+        elseif (Test-Path $genericInput) {
+            Write-Host "Using generic input file" -ForegroundColor Green
+            $inputPath = $genericInput
+        }
+        else {
+            # Default to downloads folder
+            $inputPath = $DefaultInputPath
+            Write-Host "Using default input path: $inputPath" -ForegroundColor Yellow
+            if (-not (Test-Path $inputPath)) {
+                Write-Host "Warning: Default input path does not exist!" -ForegroundColor Red
+                exit 1
+            }
+        }
+    }
+    else {
+        # Verify that the specified input path exists
+        if (-not (Test-Path $inputPath)) {
+            Write-Host "Input file not found: $inputPath" -ForegroundColor Red
+            exit 1
+        }
+    }    Write-Host "Running $currentDay with input $inputPath..." -ForegroundColor Cyan
     Push-Location $currentDay
-    Get-Content $inputPath | cargo run
+    
+    # Check if the executable exists in the day's target directory
+    $exePath = Join-Path (Get-Location).Path "target\release\$($currentDay).exe"
+    
+    if (Test-Path $exePath) {
+        Write-Host "Using release build executable: $exePath" -ForegroundColor Green
+        Get-Content $inputPath | & "$exePath"
+    }
+    else {
+        # Check if the executable exists in the workspace target directory instead
+        Pop-Location
+        $workspaceTarget = Join-Path (Get-Location).Path "target\release\$($currentDay).exe"
+        Push-Location $currentDay
+        
+        if (Test-Path $workspaceTarget) {
+            Write-Host "Using workspace target: $workspaceTarget" -ForegroundColor Yellow
+            Get-Content $inputPath | & "$workspaceTarget"
+        }
+        else {
+            Write-Host "No release build found, using cargo run" -ForegroundColor Yellow
+            # Use Get-Content and pipe rather than stdin redirection for better compatibility
+            Get-Content $inputPath | cargo run
+        }
+    }
     Pop-Location
 }
 
@@ -386,7 +508,8 @@ switch ($Command) {
     "build" {
         if ($Day) {
             BuildSpecificDay $Day
-        } else {
+        }
+        else {
             BuildAllDays
         }
     }
@@ -394,7 +517,8 @@ switch ($Command) {
     "test" {
         if ($Day) {
             TestSpecificDay $Day
-        } else {
+        }
+        else {
             TestAllDays
         }
     }
@@ -408,20 +532,18 @@ switch ($Command) {
     "check" { CheckAllDays }
     "clean" { CleanAllDays }
     "new-day" { CreateNewDay }
-    "setup" { SetupProject }
-    "run-day" {
+    "setup" { SetupProject }    "run-day" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
         }
-        RunDay $Day $Input
-    }
-    "run-release" {
+        RunDay $Day $InputPath
+    }    "run-release" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
         }
-        RunDayRelease $Day $Input
+        RunDayRelease $Day $InputPath
     }
     "run-current" { RunCurrentDay $Day }
     default {

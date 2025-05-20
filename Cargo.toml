@@ -9,7 +9,7 @@ resolver = "3"
 
 [workspace.package]
 edition = "2024"
-authors = ["Chukwuma Akunyili <chukwumaakunyili@gmail.com>"]
+authors = ["Chukwuma Akunyili"]
 repository = "https://github.com/aguluman/advent-of-code-2024-rust" 
 license = "MIT"
 

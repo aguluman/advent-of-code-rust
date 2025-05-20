@@ -15,9 +15,32 @@ set DAY=%1
 set DAY_DIR=day%DAY%
 set INPUT_PATH=%2
 
-REM If INPUT_PATH is "puzzle_input", use the fixed input path
+REM If INPUT_PATH is "puzzle_input", use repository input paths or default
 if "%INPUT_PATH%"=="puzzle_input" (
-    set INPUT_PATH=C:\Users\chukw\Downloads\input.txt
+    set REPO_INPUT_DIR=%CD%\inputs\2024
+    set DAY_SPECIFIC_INPUT=%REPO_INPUT_DIR%\day%DAY%.txt
+    set GENERIC_INPUT=%REPO_INPUT_DIR%\input.txt
+    
+    REM Check if repository inputs directory exists, if not create it
+    if not exist "%REPO_INPUT_DIR%" (
+        echo Notice: Repository inputs directory not found.
+        echo Creating directory: %REPO_INPUT_DIR%
+        mkdir "%REPO_INPUT_DIR%" 2>nul
+        echo Created %REPO_INPUT_DIR% - You can now place your puzzle inputs there.
+        echo - Day-specific files: %REPO_INPUT_DIR%\day01.txt, etc.
+        echo - Generic input file: %REPO_INPUT_DIR%\input.txt
+    )
+    
+    if exist "%DAY_SPECIFIC_INPUT%" (
+        echo Using day-specific input file: %DAY_SPECIFIC_INPUT%
+        set INPUT_PATH=%DAY_SPECIFIC_INPUT%
+    ) else if exist "%GENERIC_INPUT%" (
+        echo Using generic input file: %GENERIC_INPUT%
+        set INPUT_PATH=%GENERIC_INPUT%
+    ) else (
+        echo No input files found in repository. Using default path.
+        set INPUT_PATH=C:\Users\chukw\Downloads\input.txt
+    )
 )
 
 REM Default to fixed input path if no input is provided

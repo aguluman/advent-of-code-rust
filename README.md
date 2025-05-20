@@ -43,6 +43,36 @@ Each day's puzzle is implemented as a separate Rust crate:
 - `etc`
 - ...
 
+## Input Files
+
+The project looks for input files in the following locations (in order of priority):
+
+1. Path specified directly in commands (e.g., `make run-day DAY=01 INPUT=path/to/custom/input.txt`)
+2. Day-specific file in repository: `inputs/2024/day01.txt` (replace `01` with the day number)
+3. Generic input file in repository: `inputs/2024/input.txt` 
+4. Default download location (as specified in `.envrc` or script constants)
+
+### Setting Up Input Files
+
+For new users, we recommend:
+
+1. Create an `inputs/2024/` directory in your project root if it doesn't exist
+2. Download your puzzle inputs from the [Advent of Code website](https://adventofcode.com/2024)
+3. Save day-specific inputs as `inputs/2024/day01.txt`, `inputs/2024/day02.txt`, etc.
+4. Alternatively, save the current day's input as `inputs/2024/input.txt`
+
+The scripts will automatically find these files when using the `puzzle_input` parameter:
+
+```bash
+# Using repository input files, DAY=XX represent day
+make run-release DAY=01 INPUT=puzzle_input
+```
+
+```powershell
+# Using repository input files in PowerShell, 01/XX represent day
+.\run-aoc.ps1 run-release 01 puzzle_input
+```
+
 ## Build and Run
 
 The project supports two build systems: a `Makefile` for Unix-like environments (Linux, macOS, WSL) and a `PowerShell script` for native Windows environments.
