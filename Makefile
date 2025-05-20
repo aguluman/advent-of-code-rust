@@ -116,6 +116,7 @@ new-day:
 	mkdir -p "$(YEAR)/day$$day/src"; \
 	cp -r templates/day_template/* "$(YEAR)/day$$day/"; \
 	sed -i "s/day_template/day$$day/g" "$(YEAR)/day$$day/Cargo.toml"; \
+	sed -i "s/day_template/day$$day/g" "$(YEAR)/day$$day/src/main.rs"; \
 	echo "Updating workspace Cargo.toml..."; \
 	sed -i '/# Add new days as they are created/i \    "$(YEAR)/day'$$day'",' Cargo.toml; \
 	echo "Created $(YEAR)/day$$day successfully!"
@@ -515,6 +516,6 @@ help:
 	@echo "Examples:"
 	@echo "  make build-01            # Build day01"
 	@echo "  make test-03             # Run tests for day03"
-	@echo "  make run-day DAY=02 INPUT=../inputs/day02.txt  # Run day02 with specified input"
+	@echo "  make run-day DAY=02 INPUT=../inputs/2024/day02.txt  # Run day02 with specified input"
 	@echo "  make run-release DAY=01 INPUT=puzzle_input  # Build and run day01 in release mode with default input"
 	@echo ""
