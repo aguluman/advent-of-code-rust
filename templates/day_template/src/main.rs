@@ -1,4 +1,3 @@
-// main.rs template
 use day_template::{part1, part2};
 use std::io::{self, Read};
 use std::time::Instant;
