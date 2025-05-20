@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
-use rayon::prelude::*;
 
 type Rule = (i32, i32);
 type UpdateList = Vec<i32>;
+type FollowingMap = HashMap<i32, HashSet<i32>>;
+type UpdatePartition<'a> = (Vec<&'a UpdateList>, Vec<&'a UpdateList>);
 
 /// Parse the input string into rules and updates
 fn parse_input(input: &str) -> (Vec<Rule>, Vec<UpdateList>) {
@@ -16,49 +17,40 @@ fn parse_input(input: &str) -> (Vec<Rule>, Vec<UpdateList>) {
     let rules_block = blocks[0];
     let updates_block = blocks[1];
 
-    // Count lines to pre-allocate collections
-    let rule_line_count = rules_block.lines().filter(|line| !line.trim().is_empty()).count();
-    let update_line_count = updates_block.lines().filter(|line| !line.trim().is_empty()).count();
-
-    // Parse rules with pre-allocation
-    let mut rules = Vec::with_capacity(rule_line_count);
-    for line in rules_block.lines().filter(|line| !line.trim().is_empty()) {
-        let parts: Vec<&str> = line.split('|').collect();
-        if parts.len() == 2 {
-            if let (Ok(p), Ok(q)) = (parts[0].trim().parse::<i32>(), parts[1].trim().parse::<i32>()) {
-                rules.push((p, q));
+    // Parse rules
+    let rules: Vec<Rule> = rules_block.lines()
+        .filter(|line| !line.trim().is_empty())
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split('|').collect();
+            if parts.len() == 2 {
+                let p = parts[0].trim().parse::<i32>().ok()?;
+                let q = parts[1].trim().parse::<i32>().ok()?;
+                Some((p, q))
+            } else {
+                None
             }
-        }
-    }
+        })
+        .collect();
 
-    // Parse updates with pre-allocation
-    let mut updates = Vec::with_capacity(update_line_count);
-    for line in updates_block.lines().filter(|line| !line.trim().is_empty()) {
-        let update: Vec<i32> = line.split(',')
-            .filter_map(|x| x.trim().parse::<i32>().ok())
-            .collect();
-        updates.push(update);
-    }
+    // Parse updates
+    let updates: Vec<UpdateList> = updates_block.lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            line.split(',')
+                .filter_map(|x| x.trim().parse::<i32>().ok())
+                .collect()
+        })
+        .collect();
 
-    (rules, updates)
-}
-
-// Define a more descriptive type for the return value
-type FollowingMap = HashMap<i32, HashSet<i32>>;
-type SplitResult<'a> = (FollowingMap, (Vec<&'a UpdateList>, Vec<&'a UpdateList>));
-
+    (rules, updates) }
 /// Split updates into correct and incorrect based on rules
-#[allow(clippy::type_complexity)]
-fn split_updates<'a>(rules: &[Rule], updates: &'a [UpdateList]) -> SplitResult<'a> {
-    // Extract unique pages more efficiently
-    let mut pages = Vec::with_capacity(rules.len() * 2);
-    for &(p, q) in rules {
-        pages.push(p);
-        pages.push(q);
-    }
-    // Use sort_unstable which is faster than sorted() from itertools
-    pages.sort_unstable();
-    pages.dedup();
+fn split_updates<'a>(rules: &[Rule], updates: &'a [UpdateList]) -> (FollowingMap, UpdatePartition<'a>) {
+    // Extract unique pages
+    let pages: Vec<i32> = rules.iter()
+        .flat_map(|(p, q)| vec![*p, *q])
+        .sorted()
+        .dedup()
+        .collect();
 
     // Debug assertion - can be commented out in production
     for (p, q) in pages.iter().cartesian_product(pages.iter()) {
@@ -69,35 +61,41 @@ fn split_updates<'a>(rules: &[Rule], updates: &'a [UpdateList]) -> SplitResult<'
         );
     }
 
-    // Build following map with pre-allocation
-    let mut following: HashMap<i32, HashSet<i32>> = HashMap::with_capacity(rules.len());
+    // Build following map
+    let mut following: HashMap<i32, HashSet<i32>> = HashMap::new();
     for &(p, q) in rules {
         following.entry(p)
-            .or_insert_with(|| HashSet::with_capacity(4)) // Pre-allocate small capacity for most cases
+            .or_default()
             .insert(q);
     }
 
-    // Pre-allocate for results based on approximate distribution
-    let expected_correct = updates.len() / 2;
-    let mut correct = Vec::with_capacity(expected_correct);
-    let mut incorrect = Vec::with_capacity(updates.len() - expected_correct);
-    
-    // Check if updates are valid - optimized implementation
-    for update in updates {
-        let mut is_valid = true;
-        'outer: for (i, &p) in update.iter().enumerate() {
-            for &q in update.iter().skip(i+1) {
-                // More efficient lookups
-                let p_follows_q = following.get(&p).map(|v| v.contains(&q)).unwrap_or(true);
-                let q_follows_p = following.get(&q).map(|v| !v.contains(&p)).unwrap_or(true);
+    // Check if updates are valid
+    let check_updates = |update_list: &UpdateList| -> bool {
+        for (i, &p) in update_list.iter().enumerate() {
+            for &q in update_list.iter().skip(i+1) {
                 
-                if !(p_follows_q && q_follows_p) {
-                    is_valid = false;
-                    break 'outer;
+                let p_q = following.get(&p)
+                    .map(|v| v.contains(&q))
+                    .unwrap_or(true);
+                
+                let q_p = following.get(&q)
+                    .map(|v| !v.contains(&p))
+                    .unwrap_or(true);
+                
+                if !(p_q && q_p) {
+                    return false;
                 }
             }
         }
-        if is_valid {
+        true
+    };
+
+    // Partition updates
+    let mut correct: Vec<&UpdateList> = Vec::new();
+    let mut incorrect: Vec<&UpdateList> = Vec::new();
+    
+    for update in updates {
+        if check_updates(update) {
             correct.push(update);
         } else {
             incorrect.push(update);
@@ -112,9 +110,8 @@ pub fn part1(input: &str) -> u64 {
     let (rules, updates) = parse_input(input);
     let (_, (correct_updates, _)) = split_updates(&rules, &updates);
     
-    // Optimized processing using parallel execution
-    let sum: i32 = correct_updates.par_iter()
-        .map(|&updates| {
+    let sum: i32 = correct_updates.iter()
+        .map(|updates| {
             updates[updates.len() / 2]
         })
         .sum();
@@ -127,43 +124,18 @@ pub fn part2(input: &str) -> u64 {
     let (rules, updates) = parse_input(input);
     let (following, (_, incorrect_updates)) = split_updates(&rules, &updates);
     
-    // Process updates in parallel and avoid unnecessary cloning
-    let sum: i32 = incorrect_updates.par_iter()
+    let sum: i32 = incorrect_updates.iter()
         .map(|&updates| {
-            // Avoid clone by copying values into a new vector
-            let mut sorted_updates: Vec<i32> = Vec::with_capacity(updates.len());
-            sorted_updates.extend_from_slice(updates);
-            
-            // Precompute relationships for more efficient sorting
-            let mut relationships = vec![vec![false; updates.len()]; updates.len()];
-            for i in 0..updates.len() {
-                let p = updates[i];
-                if let Some(follows) = following.get(&p) {
-                    for (j, &q) in updates.iter().enumerate() {
-                        if i != j {
-                            relationships[i][j] = follows.contains(&q);
-                        }
-                    }
-                }
-            }
-            
-            // Sort using precomputed relationships
-            let mut indices: Vec<usize> = (0..updates.len()).collect();
-            indices.sort_unstable_by(|&i, &j| {
-                if relationships[i][j] {
-                    std::cmp::Ordering::Less
-                } else if relationships[j][i] {
-                    std::cmp::Ordering::Greater
-                } else {
-                    std::cmp::Ordering::Equal
+            // Create a sorted version based on the following relationship
+            let mut sorted_updates = updates.clone();
+            sorted_updates.sort_by(|&p, &q| {
+                match following.get(&p) {
+                    Some(v) if v.contains(&q) => std::cmp::Ordering::Less,
+                    _ => std::cmp::Ordering::Greater,
                 }
             });
             
-            // Reorder based on sorted indices
-            let sorted_values: Vec<i32> = indices.iter().map(|&i| updates[i]).collect();
-            
-            // Get the middle value
-            sorted_values[sorted_values.len() / 2]
+            sorted_updates[sorted_updates.len() / 2]
         })
         .sum();
     
