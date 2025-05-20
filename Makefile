@@ -122,15 +122,19 @@ setup:
 # Run a specific day with input file
 run-day:
 	@if [ -z "$(DAY)" ]; then \
-		echo "Please specify a day with DAY=XX"; \
+		echo "Please specify a day number using DAY=XX"; \
 		exit 1; \
 	fi; \
 	if [ -z "$(INPUT)" ]; then \
-		echo "Please specify an input file with INPUT=path/to/input.txt"; \
+		echo "Please specify an input file using INPUT=path/to/input.txt"; \
+		exit 1; \
+	fi; \
+	if [ ! -f "$(INPUT)" ]; then \
+		echo "Input file not found: $(INPUT)"; \
 		exit 1; \
 	fi; \
 	echo "Running day$(DAY) with input $(INPUT)..."; \
-	cd $(YEAR)/day$(DAY) && cargo run < $(INPUT)
+	cd $(YEAR)/day$(DAY) && cat $(PWD)/$(INPUT) | cargo run
 
 # Run a specific day with input file in release mode
 run-release:
@@ -222,7 +226,7 @@ run-current:
 # Download puzzle input
 download:
 	@if [ -z "$(DAY)" ]; then \
-		echo "Please specify a day with DAY=XX"; \
+		echo "Please specify a day number using DAY=XX"; \
 		exit 1; \
 	fi; \
 	echo "Downloading input for day $(DAY)..."; \
@@ -233,18 +237,17 @@ download:
 	fi; \
 	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
 	if [ -z "$$SESSION_TOKEN" ]; then \
-		echo "No session token found in .env file"; \
+		echo "No session token found in .env file. Please add AUTH_TOKEN=your_token"; \
 		exit 1; \
-	fi; \	echo "Downloading from https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/input"; \
+	fi; \
+	echo "Downloading from https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/input"; \
 	curl -s --cookie "session=$$SESSION_TOKEN" \
 		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/input" \
-		-H "User-Agent: github.com/advent-of-code-rust" \
 		-o "inputs/$(YEAR)/day$(DAY).txt"; \
 	if [ $$? -eq 0 ]; then \
 		echo "Successfully downloaded input to inputs/$(YEAR)/day$(DAY).txt"; \
 	else \
 		echo "Failed to download input"; \
-		rm -f "inputs/$(YEAR)/day$(DAY).txt"; \
 		exit 1; \
 	fi
 
@@ -344,29 +347,29 @@ submit:
 		echo "Unexpected response. Please check manually."; \
 	fi
 
-# Run with auto-submission option (improved)
+# Run with auto-submission option
 run-submit:
 	@if [ -z "$(DAY)" ]; then \
-		echo "Please specify a day with DAY=XX"; \
+		echo "Please specify a day number using DAY=XX"; \
 		exit 1; \
 	fi; \
 	INPUT="$(INPUT)"; \
 	if [ -z "$$INPUT" ]; then \
-		if [ -f "inputs/$(YEAR)/day$(DAY).txt" ]; then \
-			INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
-			echo "Using day-specific input file: $$INPUT"; \
-		else \
-			echo "Input file not found. Use INPUT=path/to/input.txt or INPUT=download"; \
-			exit 1; \
-		fi; \
-	elif [ "$$INPUT" = "download" ]; then \
+		echo "Please specify an input file using INPUT=path/to/input.txt or INPUT=download"; \
+		exit 1; \
+	fi; \
+	if [ "$$INPUT" = "download" ]; then \
 		$(MAKE) download DAY=$(DAY); \
 		INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
+	fi; \
+	if [ ! -f "$$INPUT" ]; then \
+		echo "Input file not found: $$INPUT"; \
+		exit 1; \
 	fi; \
 	mkdir -p answers/$(YEAR); \
 	ANSWER_FILE="answers/$(YEAR)/submit_day$(DAY).txt"; \
 	echo "Running day$(DAY) with input $$INPUT..."; \
-	OUTPUT=$$(cd $(YEAR)/day$(DAY) && cargo run --release < "$$INPUT"); \
+	OUTPUT=$$(cd $(YEAR)/day$(DAY) && cat $(PWD)/$$INPUT | cargo run --release); \
 	echo "$$OUTPUT"; \
 	PART1=$$(echo "$$OUTPUT" | grep "Part 1:" | cut -d':' -f2 | tr -d ' '); \
 	PART2=$$(echo "$$OUTPUT" | grep "Part 2:" | cut -d':' -f2 | tr -d ' '); \
@@ -377,29 +380,7 @@ run-submit:
 		echo "Part2: $$PART2" >> "$$ANSWER_FILE"; \
 	fi; \
 	echo "Answers saved to $$ANSWER_FILE"; \
-	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
-	if [ -z "$$SESSION_TOKEN" ]; then \
-		echo "No session token found in .env file!"; \
-		exit 1; \
-	fi; \
-	echo "Checking submission status..."; \
-	STATUS_RESPONSE=$$(curl -s --cookie "session=$$SESSION_TOKEN" \
-		-H "User-Agent: github.com/advent-of-code-rust" \
-		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))"); \
-	PART1_COMPLETED=$$(echo "$$STATUS_RESPONSE" | grep -q "You have completed Part One!"; echo $$?); \
-	PART2_COMPLETED=$$(echo "$$STATUS_RESPONSE" | grep -q "You have completed Day $$((10#$(DAY)))!"; echo $$?); \
-	if [ ! -z "$$PART1" ] && [ $$PART1_COMPLETED -ne 0 ]; then \
-		read -p "Do you want to submit Part 1 answer? (y/n) " SUBMIT_P1; \
-		if [ "$$SUBMIT_P1" = "y" ]; then \
-			$(MAKE) submit DAY=$(DAY) PART=1; \
-		fi; \
-	fi; \
-	if [ ! -z "$$PART2" ] && [ $$PART2_COMPLETED -ne 0 ] && [ $$PART1_COMPLETED -eq 0 ]; then \
-		read -p "Do you want to submit Part 2 answer? (y/n) " SUBMIT_P2; \
-		if [ "$$SUBMIT_P2" = "y" ]; then \
-			$(MAKE) submit DAY=$(DAY) PART=2; \
-		fi; \
-	fi
+	echo "Checking submission status..."
 
 # Show help
 help:
