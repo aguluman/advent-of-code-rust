@@ -60,12 +60,14 @@ fn can_be_made_safe(report: &[i32]) -> bool {
 }
 
 /// Part 1: Count the number of safe reports
-pub fn part1(reports: &[Vec<i32>]) -> usize {
+pub fn part1(input: &str) -> usize {
+    let reports = parse(input);
     reports.iter().filter(|report| is_safe(report)).count()
 }
 
 /// Part 2: Count reports that can become safe by removing one element
-pub fn part2(reports: &[Vec<i32>]) -> usize {
+pub fn part2(input: &str) -> usize {
+    let reports = parse(input);
     reports
         .iter()
         .filter(|report| can_be_made_safe(report))
@@ -110,13 +112,11 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let reports = parse(EXAMPLE_INPUT);
-        assert_eq!(part1(&reports), 2);
+        assert_eq!(part1(EXAMPLE_INPUT), 2);
     }
 
     #[test]
     fn test_part2() {
-        let reports = parse(EXAMPLE_INPUT);
-        assert_eq!(part2(&reports), 4);
+        assert_eq!(part2(EXAMPLE_INPUT), 4);
     }
 }

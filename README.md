@@ -307,4 +307,4 @@ make submit DAY=01 PART=2                       # Submit Part 2 directly
 make run-submit DAY=01 INPUT=download           # Download, run, and submit in one command
 ```
 
-The scripts will handle downloading inputs, running solutions, saving answers, and managing submissions automatically. They also provide helpful feedback for incorrect answers and maintain submission status.
+These scripts will handle downloading inputs, running solutions, saving answers, and managing submissions automatically. They also provide helpful feedback for incorrect answers and maintain submission status.
