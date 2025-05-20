@@ -418,6 +418,7 @@ help:
 	@echo "  run-day         : Run a specific day with input (DAY=XX INPUT=path/to/input.txt)"
 	@echo "  run-release     : Build and run a specific day in release mode (DAY=XX INPUT=path/to/input.txt or INPUT=puzzle_input)"
 	@echo "  run-current     : Run the current day with input (INPUT=path/to/input.txt)"
+	@echo ""
 	@echo "  make download DAY=XX         : Download puzzle input for day XX"
 	@echo "  make check-status DAY=XX     : Check submission status for day XX"
 	@echo "  make submit DAY=XX PART=P    : Submit answer for day XX part P (1 or 2)"
