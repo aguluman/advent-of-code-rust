@@ -43,23 +43,41 @@ Each day's puzzle is implemented as a separate Rust crate:
 - `etc`
 - ...
 
-## Input Files
+## Automated Workflow
 
-The project looks for input files in the following locations (in order of priority):
+This project includes automated tools for a streamlined Advent of Code workflow:
 
-1. Path specified directly in commands (e.g., `make run-day DAY=01 INPUT=path/to/custom/input.txt`)
-2. Day-specific file in repository: `inputs/2024/day01.txt` (replace `01` with the day number)
-3. Generic input file in repository: `inputs/2024/input.txt` 
-4. Default download location (as specified in `.envrc` or script constants)
+1. **Automatic Input Management**:
+   - Downloads puzzle inputs automatically
+   - Stores inputs in `inputs/2024/day01.txt` format
+   - Falls back to default locations if needed
+
+2. **Smart Answer Submission**:
+   - Runs your solution and extracts both Part 1 and Part 2 answers
+   - Saves answers in `answers/2024/submit_dayXX.txt`
+   - Tracks submission status (Correct/Incorrect)
+   - Automatically handles Part 1 before Part 2 submission
+   - Shows helpful messages for incorrect answers (too high/low)
+
+3. **Input File Priority**:
+   - Path specified in commands (e.g., `make run-day DAY=01 INPUT=path/to/custom/input.txt`)
+   - Day-specific file in repository: `inputs/2024/day01.txt`
+   - Generic input file in repository: `inputs/2024/input.txt`
+   - Default download location (as specified in `.envrc` or script constants)
 
 ### Setting Up Input Files
 
 For new users, we recommend:
 
 1. Create an `inputs/2024/` directory in your project root if it doesn't exist
-2. Download your puzzle inputs from the [Advent of Code website](https://adventofcode.com/2024)
-3. Save day-specific inputs as `inputs/2024/day01.txt`, `inputs/2024/day02.txt`, etc.
-4. Alternatively, save the current day's input as `inputs/2024/input.txt`
+2. Create an `.env` file in your project root with your Advent of Code session token:
+   ```
+   AUTH_TOKEN=your_session_token_here
+   ```
+3. Use the automated download and submit features (see below), or manually:
+   - Download your puzzle inputs from the [Advent of Code website](https://adventofcode.com/2024)
+   - Save day-specific inputs as `inputs/2024/day01.txt`, `inputs/2024/day02.txt`, etc.
+   - Alternatively, save the current day's input as `inputs/2024/input.txt`
 
 The scripts will automatically find these files when using the `puzzle_input` parameter:
 
@@ -104,23 +122,31 @@ make test
 make test-01
 ```
 
-#### Run
+#### Run and Submit Solutions
 
 ```bash
-# Run a specific day with input
-make run-day DAY=01 INPUT=path/to/input.txt
+# Download input for a specific day
+make download DAY=01
 
-# Run a specific day in release mode with input
-make run-release DAY=01 INPUT=path/to/input.txt
+# Run a day's solution and be prompted to submit answers
+make run-submit DAY=01 INPUT=inputs/2024/day01.txt
 
-# Run a specific day in release mode with default input path
-make run-release DAY=01 INPUT=puzzle_input
+# Download input, run solution, and be prompted to submit answers
+make run-submit DAY=01 INPUT=download
 
-# Run the current (most recent) day with input
-make run-current INPUT=path/to/input.txt
+# Submit a specific part's answer manually
+make submit DAY=01 PART=1  # Submit Part 1
+make submit DAY=01 PART=2  # Submit Part 2
 
-# Run the current (most recent) day with default input path
-make run-current INPUT=puzzle_input
+# Check submission status for a day
+make check-status DAY=01
+
+# Basic Run Commands
+make run-day DAY=01 INPUT=path/to/input.txt         # Run with input
+make run-release DAY=01 INPUT=path/to/input.txt     # Run in release mode
+make run-release DAY=01 INPUT=puzzle_input          # Use default input path
+make run-current INPUT=path/to/input.txt            # Run most recent day
+make run-current INPUT=puzzle_input                 # Use default input path
 ```
 
 #### Create a New Day
@@ -176,20 +202,31 @@ For Windows users who prefer to work natively (without WSL), a PowerShell script
 .\run-aoc.ps1 test 01
 ```
 
-#### Run
+#### Run and Submit Solutions
 
 ```powershell
-# Run a specific day with input
-.\run-aoc.ps1 run-day 01 path\to\input.txt
+# Download input for a specific day
+.\run-aoc.ps1 download 01
 
-# Run a specific day in release mode with input
-.\run-aoc.ps1 run-release 01 path\to\input.txt
+# Run a day's solution and be prompted to submit answers
+.\run-aoc.ps1 run-submit 01 inputs\2024\day01.txt
 
-# Use default input path (Downloads folder)
-.\run-aoc.ps1 run-release 01 puzzle_input
+# Download input, run solution, and be prompted to submit answers
+.\run-aoc.ps1 run-submit 01 download
 
-# Run the current (most recent) day with input
-.\run-aoc.ps1 run-current path\to\input.txt
+# Submit a specific part's answer manually
+.\run-aoc.ps1 submit 01 1  # Submit Part 1
+.\run-aoc.ps1 submit 01 2  # Submit Part 2
+
+# Check submission status for a day
+.\run-aoc.ps1 check 01
+
+
+# Basic Run Commands
+.\run-aoc.ps1 run-day 01 path\to\input.txt            # Run with input
+.\run-aoc.ps1 run-release 01 path\to\input.txt        # Run in release mode
+.\run-aoc.ps1 run-release 01 puzzle_input             # Use default input path
+.\run-aoc.ps1 run-current path\to\input.txt           # Run most recent day
 ```
 
 #### Create a New Day
@@ -245,3 +282,29 @@ nix-build build.nix -A days.day01
 ## License
 
 [MIT License](License.md)
+
+### Example Workflows
+
+#### PowerShell (Windows)
+```powershell
+# Complete workflow for a new day
+.\run-aoc.ps1 download 01                         # Download input
+.\run-aoc.ps1 run-submit 01 puzzle_input         # Run and submit answers
+.\run-aoc.ps1 submit 01 2                        # Submit Part 2 directly
+
+# Or more concisely
+.\run-aoc.ps1 run-submit 01 download             # Download, run, and submit in one command
+```
+
+#### Make (Unix/Linux/WSL)
+```bash
+# Complete workflow for a new day
+make download DAY=01                             # Download input
+make run-submit DAY=01 INPUT=puzzle_input       # Run and submit answers
+make submit DAY=01 PART=2                       # Submit Part 2 directly
+
+# Or more concisely
+make run-submit DAY=01 INPUT=download           # Download, run, and submit in one command
+```
+
+The scripts will handle downloading inputs, running solutions, saving answers, and managing submissions automatically. They also provide helpful feedback for incorrect answers and maintain submission status.

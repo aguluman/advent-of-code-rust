@@ -74,7 +74,8 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt : Run the current day with input"
     Write-Host "  .\run-aoc.ps1 run-current puzzle_input      : Run the current day with default input"
     Write-Host "  .\run-aoc.ps1 download XX       : Download puzzle input for day XX"
-    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"    Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
+    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"    
+    Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
     Write-Host "  .\run-aoc.ps1 force-submit XX P : Force-submit answer for day XX part P (bypasses completion check)"
     Write-Host "  .\run-aoc.ps1 run-submit XX path : Run day XX and prompt to submit answers"
     Write-Host "  .\run-aoc.ps1 run-submit XX download : Download input, run day XX, and prompt to submit"
@@ -737,18 +738,31 @@ function SubmitAnswer {
         Write-Host "Puzzle is not available." -ForegroundColor Red
         return $false
     }
-      # Check if already completed
+    # Check if already completed
     if (($Part -eq 1 -and $status.Part1) -or ($Part -eq 2 -and $status.Part2)) {
         Write-Host "You have already solved Year $Year Day $day Part $Part!" -ForegroundColor Green
         return $true
     }
-    
     # Check if part 2 is unlocked
     if ($Part -eq 2 -and -not $status.Part1) {
-        Write-Host "The API reports that Part 1 is not completed, which is required before submitting Part 2." -ForegroundColor Yellow
-        Write-Host "If you believe this is incorrect and have already completed Part 1, use 'force-submit' instead:" -ForegroundColor Yellow
-        Write-Host "  .\run-aoc.ps1 force-submit $day 2" -ForegroundColor Cyan
-        return $false
+        # Check the answer file to see if we have a "Correct" status for Part 1
+        $answerFile = Join-Path (Get-Location).Path "answers\$Year\submit_day$day.txt"
+        $part1Completed = $false
+        
+        if (Test-Path $answerFile) {
+            $fileContent = Get-Content $answerFile -Raw
+            if ($fileContent -match "Part1:.*\[Status: Correct\]") {
+                $part1Completed = $true
+                Write-Host "Found Part 1 marked as correct in answer file. Proceeding with Part 2 submission." -ForegroundColor Green
+            }
+        }
+        
+        if (-not $part1Completed) {
+            Write-Host "Part 1 needs to be completed before submitting Part 2." -ForegroundColor Yellow
+            Write-Host "If you believe this is incorrect and have already completed Part 1, use 'force-submit' instead:" -ForegroundColor Yellow
+            Write-Host "  .\run-aoc.ps1 force-submit $day 2" -ForegroundColor Cyan
+            return $false
+        }
     }
     try {
         $url = "https://adventofcode.com/$Year/day/$dayNum/answer"
@@ -1053,22 +1067,37 @@ switch ($Command) {
             
             # Check submission status
             $status = CheckSubmissionStatus -Year $Year -Day $Day
-            
             # Prompt to submit answers
             if ($answers.Part1 -and -not $status.Part1) {
                 $submitPart1 = Read-Host "Do you want to submit Part 1 answer? (y/n)"
                 if ($submitPart1 -eq "y") {
-                    SubmitAnswer -Year $Year -Day $Day -Part 1 -Answer $answers.Part1
+                    $result = SubmitAnswer -Year $Year -Day $Day -Part 1 -Answer $answers.Part1
+                    
+                    # If Part 1 was successfully submitted, check status again and try Part 2
+                    if ($result -eq $true -and $answers.Part2) {
+                        # Brief pause to allow website to update
+                        Start-Sleep -Seconds 1
+                        
+                        # Refresh status after Part 1 submission
+                        $status = CheckSubmissionStatus -Year $Year -Day $Day
+                        
+                        if (-not $status.Part2) {
+                            $submitPart2 = Read-Host "Do you want to submit Part 2 answer? (y/n)"
+                            if ($submitPart2 -eq "y") {
+                                SubmitAnswer -Year $Year -Day $Day -Part 2 -Answer $answers.Part2
+                            }
+                        }
+                    }
                 }
             }
-            
-            if ($answers.Part2 -and -not $status.Part2 -and $status.Part1) {
+            elseif ($answers.Part2 -and -not $status.Part2 -and $status.Part1) {
                 $submitPart2 = Read-Host "Do you want to submit Part 2 answer? (y/n)"
                 if ($submitPart2 -eq "y") {
                     SubmitAnswer -Year $Year -Day $Day -Part 2 -Answer $answers.Part2
                 }
             }
-        }        else {
+        }
+        else {
             Write-Host "Could not extract answers from output" -ForegroundColor Red
         }
     }
@@ -1097,7 +1126,8 @@ switch ($Command) {
             }
         }
         
-        if ($answer) {            # Directly submit without checking submission status
+        if ($answer) {
+            # Directly submit without checking submission status
             Write-Host "Force submitting answer for Year ${Year} Day ${Day} Part ${part}: ${answer}" -ForegroundColor Cyan
             
             # Get session token
