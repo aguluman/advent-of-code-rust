@@ -73,6 +73,11 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 run-release XX puzzle_input    : Use default input path"
     Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt : Run the current day with input"
     Write-Host "  .\run-aoc.ps1 run-current puzzle_input      : Run the current day with default input"
+    Write-Host "  .\run-aoc.ps1 download XX       : Download puzzle input for day XX"
+    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"
+    Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
+    Write-Host "  .\run-aoc.ps1 run-submit XX path : Run day XX and prompt to submit answers"
+    Write-Host "  .\run-aoc.ps1 run-submit XX download : Download input, run day XX, and prompt to submit"
     Write-Host "  .\run-aoc.ps1 help            : Show this help message"
     Write-Host ""
     Write-Host "Examples:"
@@ -537,6 +542,317 @@ function RunCurrentDay {
     Pop-Location
 }
 
+function GetSessionToken {
+    # First check if .env file exists
+    $EnvPath = Join-Path (Get-Location).Path ".env"
+    if (Test-Path $EnvPath) {
+        # Parse the .env file to extract AUTH_TOKEN
+        $envContent = Get-Content $EnvPath -Raw
+        if ($envContent -match 'AUTH_TOKEN=([^\r\n]+)') {
+            $token = $Matches[1]
+            Write-Host "Using session token from .env file" -ForegroundColor Green
+            return $token
+        }
+    }
+    
+    # If we couldn't get it from .env, ask the user
+    $token = Read-Host "Enter your Advent of Code session token"
+    
+    # Ask if they want to save it to .env
+    $saveToken = Read-Host "Do you want to save this token for future use? (y/n)"
+    if ($saveToken -eq "y") {
+        "AUTH_TOKEN=$token" | Out-File -FilePath $EnvPath
+        Write-Host "Token saved to .env file" -ForegroundColor Green
+    }
+    
+    return $token
+}
+
+function CheckSubmissionStatus {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Year,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Day,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$SessionToken
+    )
+    
+    $day = PadDayNumber $Day
+    $dayNum = [int]$day
+    
+    # Get session token if not provided
+    if ([string]::IsNullOrEmpty($SessionToken)) {
+        $SessionToken = GetSessionToken
+    }
+    
+    try {
+        # Fetch the puzzle page
+        $url = "https://adventofcode.com/$Year/day/$dayNum"
+        $headers = @{
+            "Cookie"     = "session=$SessionToken"
+            "User-Agent" = "github.com/advent-of-code-rust"
+        }
+        
+        Write-Host "Checking submission status for Year ${Year} Day ${day}..." -ForegroundColor Cyan
+        $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing
+        
+        $content = $response.Content
+        $status = @{
+            "Part1"     = $false
+            "Part2"     = $false
+            "Available" = $true
+        }
+        
+        # Check if the problem is available
+        if ($content -match "Please log in to get your puzzle input") {
+            Write-Host "You need to be logged in to access this puzzle." -ForegroundColor Yellow
+            $status.Available = $false
+            return $status
+        }
+        
+        # Check if puzzle is not yet available
+        if ($content -match "Please wait until the puzzle is available") {
+            Write-Host "This puzzle is not yet available." -ForegroundColor Yellow
+            $status.Available = $false
+            return $status
+        }
+        
+        # Check for gold stars
+        $part1Completed = $content -match "You have completed Part One!"
+        $part2Unlocked = $content -match "The second part of this puzzle is available"
+        $part2Completed = $content -match "You have completed Day $dayNum!"
+        
+        $status.Part1 = $part1Completed
+        $status.Part2 = $part2Completed
+        
+        return $status
+    }
+    catch {
+        Write-Host "Error checking submission status: $_" -ForegroundColor Red
+        return @{
+            "Part1"     = $false
+            "Part2"     = $false
+            "Available" = $false
+            "Error"     = $_
+        }
+    }
+}
+
+function DownloadPuzzleInput {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Year,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Day
+    )
+    
+    $day = PadDayNumber $Day
+    
+    # Create inputs directory if it doesn't exist
+    $InputDir = Join-Path (Get-Location).Path "inputs\$Year"
+    if (-not (Test-Path $InputDir -PathType Container)) {
+        New-Item -Path $InputDir -ItemType Directory -Force | Out-Null
+        Write-Host "Created inputs directory: $InputDir" -ForegroundColor Green
+    }
+    
+    $OutputFile = Join-Path $InputDir "day$day.txt"
+    
+    # Check if we already have the input file
+    if (Test-Path $OutputFile) {
+        Write-Host "Input file already exists at: $OutputFile" -ForegroundColor Yellow
+        $overwrite = Read-Host "Do you want to download again? (y/n)"
+        if ($overwrite -ne "y") {
+            return $OutputFile
+        }
+    }
+    
+    # Get session token
+    $SessionToken = GetSessionToken
+    
+    # Check if puzzle is available
+    $status = CheckSubmissionStatus -Year $Year -Day $Day -SessionToken $SessionToken
+    if (-not $status.Available) {
+        Write-Host "Puzzle is not yet available or there was an error accessing it." -ForegroundColor Red
+        return $null
+    }
+    
+    # Download the input
+    try {
+        $url = "https://adventofcode.com/$Year/day/$([int]$day)/input"
+        $headers = @{
+            "Cookie"     = "session=$SessionToken"
+            "User-Agent" = "github.com/advent-of-code-rust"
+        }
+        
+        Write-Host "Downloading input for Year ${Year} Day ${day} from ${url}" -ForegroundColor Cyan
+        $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing
+        
+        if ($response.StatusCode -eq 200) {
+            $content = $response.Content
+            $content | Out-File -FilePath $OutputFile -NoNewline
+            Write-Host "Successfully downloaded and saved input to $OutputFile" -ForegroundColor Green
+            return $OutputFile
+        }
+        else {
+            Write-Host "Failed to download input. Status code: $($response.StatusCode)" -ForegroundColor Red
+            return $null
+        }
+    }
+    catch {
+        Write-Host "Error downloading input: $_" -ForegroundColor Red
+        return $null
+    }
+}
+
+
+function SubmitAnswer {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Year,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Day,
+        
+        [Parameter(Mandatory = $true)]
+        [int]$Part,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Answer
+    )
+    
+    $day = PadDayNumber $Day
+    $dayNum = [int]$day
+    
+    # Get session token
+    $SessionToken = GetSessionToken
+    
+    # Check submission status first
+    $status = CheckSubmissionStatus -Year $Year -Day $Day -SessionToken $SessionToken
+    
+    if (-not $status.Available) {
+        Write-Host "Puzzle is not available." -ForegroundColor Red
+        return $false
+    }
+    
+    # Check if already completed
+    if (($Part -eq 1 -and $status.Part1) -or ($Part -eq 2 -and $status.Part2)) {
+        Write-Host "You have already solved Year $Year Day $day Part $Part!" -ForegroundColor Green
+        return $true
+    }
+    
+    # Check if part 2 is unlocked
+    if ($Part -eq 2 -and -not $status.Part1) {
+        Write-Host "You need to solve Part 1 before you can submit Part 2." -ForegroundColor Yellow
+        return $false
+    }
+    try {
+        $url = "https://adventofcode.com/$Year/day/$dayNum/answer"
+        $headers = @{
+            "Cookie"     = "session=$SessionToken"
+            "User-Agent" = "github.com/advent-of-code-rust"
+        }
+        $formData = @{
+            "level"  = $Part
+            "answer" = $Answer
+        }
+        
+        Write-Host "Submitting answer for Year ${Year} Day ${day} Part ${Part}: ${Answer}" -ForegroundColor Cyan
+        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $formData -UseBasicParsing
+        
+        # Parse the response to determine if the answer was correct
+        $content = $response.Content
+        
+        if ($content -match "That's the right answer") {
+            Write-Host "Correct answer! Well done." -ForegroundColor Green
+            # Update status in answers file
+            UpdateAnswerStatus -Year $Year -Day $day -Part $Part -Status "Correct"
+            return $true
+        }
+        elseif ($content -match "You gave an answer too recently") {
+            # Extract the time to wait
+            if ($content -match "You have ([0-9]+m [0-9]+s) left to wait") {
+                $waitTime = $Matches[1]
+                Write-Host "You need to wait $waitTime before submitting again." -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "You need to wait before submitting again." -ForegroundColor Yellow
+            }
+            return $false
+        }
+        elseif ($content -match "That's not the right answer") {
+            if ($content -match "your answer is too (high|low)") {
+                $direction = $Matches[1]
+                Write-Host "Incorrect answer. Your answer is too $direction." -ForegroundColor Red
+            }
+            else {
+                Write-Host "Incorrect answer." -ForegroundColor Red
+            }
+            # Update status in answers file
+            UpdateAnswerStatus -Year $Year -Day $day -Part $Part -Status "Incorrect"
+            return $false
+        }
+        elseif ($content -match "You don't seem to be solving the right level") {
+            Write-Host "You've already solved this part or are not on this level yet." -ForegroundColor Yellow
+            return $false
+        }
+        else {
+            Write-Host "Unexpected response from Advent of Code. Please check manually." -ForegroundColor Red
+            return $false
+        }
+    }
+    catch {
+        Write-Host "Error submitting answer: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+function UpdateAnswerStatus {
+    param(
+        [string]$Year,
+        [string]$Day,
+        [int]$Part,
+        [string]$Status
+    )
+    
+    $day = PadDayNumber $Day
+    $answerFile = Join-Path (Get-Location).Path "answers\$Year\submit_day$day.txt"
+    
+    if (Test-Path $answerFile) {
+        $content = Get-Content $answerFile
+        $updated = @()
+        $found = $false
+        
+        foreach ($line in $content) {
+            # Check if line matches Part[1-9]:
+            if ($line -match "^Part$Part`:" ) {
+                $found = $true
+                
+                # If line already has status, update it
+                if ($line -match "\[Status: .*\]") {
+                    $updated += $line -replace "\[Status: .*\]", "[Status: $Status]"
+                }
+                else {
+                    # If no status, add it
+                    $updated += "$line [Status: $Status]"
+                }
+            }
+            else {
+                $updated += $line
+            }
+        }
+        
+        if ($found) {
+            $updated | Set-Content $answerFile
+        }
+    }
+}
+
+
+
 # Main logic
 if ($null -eq $Command -or $Command -eq "help") {
     ShowHelp
@@ -577,13 +893,15 @@ switch ($Command) {
     "check" { CheckAllDays }
     "clean" { CleanAllDays }
     "new-day" { CreateNewDay }
-    "setup" { SetupProject }    "run-day" {
+    "setup" { SetupProject }
+    "run-day" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
         }
         RunDay $Day $InputPath
-    }    "run-release" {
+    }
+    "run-release" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
@@ -591,6 +909,169 @@ switch ($Command) {
         RunDayRelease $Day $InputPath
     }
     "run-current" { RunCurrentDay $Day }
+    "download" {
+        if (-not $Day) {
+            Write-Host "Please specify a day!" -ForegroundColor Red
+            exit 1
+        }
+        DownloadPuzzleInput -Year $Year -Day $Day
+    }
+    "submit" {
+        if (-not $Day) {
+            Write-Host "Please specify a day!" -ForegroundColor Red
+            exit 1
+        }
+        
+        $part = if ($InputPath) { [int]$InputPath } else { 1 }
+        
+        # Read the saved answers
+        $answerFile = Join-Path (Get-Location).Path "answers\$Year\submit_day$Day.txt"
+        if (-not (Test-Path $answerFile)) {
+            Write-Host "No saved answers found for Day $Day!" -ForegroundColor Red
+            exit 1
+        }
+        
+        $answer = $null
+        foreach ($line in (Get-Content $answerFile)) {
+            if ($line -match "^Part$part`:" ) {
+                if ($line -match "^Part$part`:(.*?)(\s*\[Status\:|\s*$)") {
+                    $answer = $Matches[1].Trim()
+                }
+                break
+            }
+        }
+        
+        if ($answer) {
+            SubmitAnswer -Year $Year -Day $Day -Part $part -Answer $answer
+        }
+        else {
+            Write-Host "No answer found for Part $part!" -ForegroundColor Red
+        }
+    }
+    "check" {
+        if (-not $Day) {
+            Write-Host "Please specify a day!" -ForegroundColor Red
+            exit 1
+        }
+        $status = CheckSubmissionStatus -Year $Year -Day $Day
+        
+        if ($status.Available) {
+            Write-Host "Year ${Year} Day ${Day}:" -ForegroundColor Cyan
+            Write-Host "- Part 1: " -NoNewline
+            if ($status.Part1) {
+                Write-Host "Completed ✓" -ForegroundColor Green
+            }
+            else {
+                Write-Host "Not completed" -ForegroundColor Yellow
+            }
+            Write-Host "- Part 2: " -NoNewline
+            if ($status.Part2) {
+                Write-Host "Completed ✓" -ForegroundColor Green
+            }
+            else {
+                Write-Host "Not completed" -ForegroundColor Yellow
+            }
+        }
+    }
+    "run-submit" {
+        if (-not $Day) {
+            Write-Host "Please specify a day!" -ForegroundColor Red
+            exit 1
+        }
+        
+        # If inputPath is "download", get the input from AoC
+        if ($InputPath -eq "download") {
+            $downloadedInput = DownloadPuzzleInput -Year $Year -Day $Day
+            if ($downloadedInput) {
+                $InputPath = $downloadedInput
+            }
+            else {
+                exit 1
+            }
+        }
+        
+        # Run the solution
+        $day = PadDayNumber $Day
+        $dayDir = "$Year/day$day"
+        
+        if (-not (Test-Path $dayDir -PathType Container)) {
+            Write-Host "Day $day does not exist!" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Create answers directory
+        $OutputDir = Join-Path (Get-Location).Path "answers\$Year"
+        if (-not (Test-Path $OutputDir -PathType Container)) {
+            New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+        }
+        $answerFile = Join-Path $OutputDir "submit_day$day.txt"
+        
+        # Run the solution and capture output
+        Write-Host "Running day $day with input $InputPath..." -ForegroundColor Cyan
+        
+        # Run in current PowerShell and capture output
+        Push-Location $dayDir
+        cargo build --release
+        Pop-Location
+        
+        # Get the binary path (workspace or day-specific)
+        $dayName = "day$day"
+        $exePath = Join-Path (Get-Location).Path "target\release\$dayName.exe"
+        if (-not (Test-Path $exePath)) {
+            $exePath = Join-Path (Join-Path $dayDir "target\release") "$dayName.exe"
+            if (-not (Test-Path $exePath)) {
+                Write-Host "Could not find executable for day $day" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+        # Capture output by running the command and storing its output
+        $outputCapture = Get-Content $InputPath | & $exePath
+        
+        # Display the output
+        $outputCapture | ForEach-Object { Write-Host $_ }
+        
+        # Extract the answers using regex
+        $answers = @{}
+        $outputString = $outputCapture -join "`n"
+        if ($outputString -match "Part 1`:\s*([0-9a-zA-Z]+)") {
+            $answers.Part1 = $Matches[1].Trim()
+        }
+        if ($outputString -match "Part 2`:\s*([0-9a-zA-Z]+)") {
+            $answers.Part2 = $Matches[1].Trim()
+        }
+        
+        # Save answers
+        $answerContent = @()
+        if ($answers.Part1) { $answerContent += "Part1: $($answers.Part1)" }
+        if ($answers.Part2) { $answerContent += "Part2: $($answers.Part2)" }
+        
+        if ($answerContent.Count -gt 0) {
+            $answerContent | Set-Content $answerFile
+            Write-Host "Answers saved to $answerFile" -ForegroundColor Green
+            
+            # Check submission status
+            $status = CheckSubmissionStatus -Year $Year -Day $Day
+            
+            # Prompt to submit answers
+            if ($answers.Part1 -and -not $status.Part1) {
+                $submitPart1 = Read-Host "Do you want to submit Part 1 answer? (y/n)"
+                if ($submitPart1 -eq "y") {
+                    SubmitAnswer -Year $Year -Day $Day -Part 1 -Answer $answers.Part1
+                }
+            }
+            
+            if ($answers.Part2 -and -not $status.Part2 -and $status.Part1) {
+                $submitPart2 = Read-Host "Do you want to submit Part 2 answer? (y/n)"
+                if ($submitPart2 -eq "y") {
+                    SubmitAnswer -Year $Year -Day $Day -Part 2 -Answer $answers.Part2
+                }
+            }
+        }
+        else {
+            Write-Host "Could not extract answers from output" -ForegroundColor Red
+        }
+    }
     default {
         Write-Host "Unknown command: $Command" -ForegroundColor Red
         ShowHelp

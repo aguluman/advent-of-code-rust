@@ -218,6 +218,154 @@ run-current:
 	echo "Running $(CURRENT_DAY) with input $$INPUT_PATH..."; \
 	cd $(CURRENT_DAY) && cargo run < "$$INPUT_PATH"
 
+
+# Download puzzle input
+download:
+	@if [ -z "$(DAY)" ]; then \
+		echo "Please specify a day with DAY=XX"; \
+		exit 1; \
+	fi; \
+	echo "Downloading input for day $(DAY)..."; \
+	mkdir -p inputs/$(YEAR); \
+	if [ -f "inputs/$(YEAR)/day$(DAY).txt" ] && [ "$${FORCE:-}" != "1" ]; then \
+		echo "Input file already exists. Use FORCE=1 to overwrite."; \
+		exit 0; \
+	fi; \
+	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
+	if [ -z "$$SESSION_TOKEN" ]; then \
+		echo "No session token found in .env file"; \
+		exit 1; \
+	fi; \	echo "Downloading from https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/input"; \
+	curl -s --cookie "session=$$SESSION_TOKEN" \
+		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/input" \
+		-H "User-Agent: github.com/advent-of-code-rust" \
+		-o "inputs/$(YEAR)/day$(DAY).txt"; \
+	if [ $$? -eq 0 ]; then \
+		echo "Successfully downloaded input to inputs/$(YEAR)/day$(DAY).txt"; \
+	else \
+		echo "Failed to download input"; \
+		rm -f "inputs/$(YEAR)/day$(DAY).txt"; \
+		exit 1; \
+	fi
+
+# Check submission status
+check-status:
+	@if [ -z "$(DAY)" ]; then \
+		echo "Please specify a day with DAY=XX"; \
+		exit 1; \
+	fi; \
+	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
+	if [ -z "$$SESSION_TOKEN" ]; then \
+		echo "No session token found in .env file"; \
+		exit 1; \
+	fi; \	echo "Checking status for day $(DAY)..."; \
+	RESPONSE=$$(curl -s --cookie "session=$$SESSION_TOKEN" \
+		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))" \
+		-H "User-Agent: github.com/advent-of-code-rust"); \
+	if echo "$$RESPONSE" | grep -q "You have completed Part One!"; then \
+		echo "Part 1: Completed ✓"; \
+	else \
+		echo "Part 1: Not completed"; \
+	fi; \
+	if echo "$$RESPONSE" | grep -q "You have completed Day $$((10#$(DAY)))!"; then \
+		echo "Part 2: Completed ✓"; \
+	else \
+		echo "Part 2: Not completed"; \
+	fi
+
+# Submit an answer
+submit:
+	@if [ -z "$(DAY)" ]; then \
+		echo "Please specify a day with DAY=XX"; \
+		exit 1; \
+	fi; \
+	if [ -z "$(PART)" ]; then \
+		echo "Please specify a part with PART=1 or PART=2"; \
+		exit 1; \
+	fi; \
+	ANSWER_FILE="answers/$(YEAR)/submit_day$(DAY).txt"; \
+	if [ ! -f "$$ANSWER_FILE" ]; then \
+		echo "No answers file found at $$ANSWER_FILE"; \
+		exit 1; \
+	fi; \
+	ANSWER=$$(grep "^Part$(PART):" "$$ANSWER_FILE" | cut -d':' -f2 | tr -d ' ' | head -n1); \
+	if [ -z "$$ANSWER" ]; then \
+		echo "No answer found for Part $(PART)"; \
+		exit 1; \
+	fi; \
+	echo "Found answer for Day $(DAY) Part $(PART): $$ANSWER"; \
+	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
+	if [ -z "$$SESSION_TOKEN" ]; then \
+		echo "No session token found in .env file"; \
+		exit 1; \
+	fi; \
+	echo "Submitting answer..."; \	RESPONSE=$$(curl -s -X POST --cookie "session=$$SESSION_TOKEN" \
+		-H "User-Agent: github.com/advent-of-code-rust" \
+		-d "level=$(PART)&answer=$$ANSWER" \
+		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))/answer"); \
+	if echo "$$RESPONSE" | grep -q "That's the right answer!"; then \
+		echo "Correct answer! Well done."; \
+		sed -i "s/^Part$(PART): $$ANSWER$$/Part$(PART): $$ANSWER [Status: Correct]/" "$$ANSWER_FILE"; \
+	elif echo "$$RESPONSE" | grep -q "You gave an answer too recently"; then \
+		WAIT_TIME=$$(echo "$$RESPONSE" | grep -o "You have [0-9]+m [0-9]+s left to wait" | grep -o "[0-9]+m [0-9]+s"); \
+		echo "You need to wait $$WAIT_TIME before submitting again."; \
+	elif echo "$$RESPONSE" | grep -q "That's not the right answer"; then \
+		if echo "$$RESPONSE" | grep -q "your answer is too high"; then \
+			echo "Incorrect answer. Your answer is too high."; \
+		elif echo "$$RESPONSE" | grep -q "your answer is too low"; then \
+			echo "Incorrect answer. Your answer is too low."; \
+		else \
+			echo "Incorrect answer."; \
+		fi; \
+		sed -i "s/^Part$(PART): $$ANSWER$$/Part$(PART): $$ANSWER [Status: Incorrect]/" "$$ANSWER_FILE"; \
+	else \
+		echo "Unexpected response. Please check manually."; \
+	fi
+
+# Run with auto-submission option
+run-submit:
+	@if [ -z "$(DAY)" ]; then \
+		echo "Please specify a day with DAY=XX"; \
+		exit 1; \
+	fi; \
+	INPUT="$(INPUT)"; \
+	if [ "$$INPUT" = "download" ]; then \
+		$(MAKE) download DAY=$(DAY); \
+		INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
+	fi; \
+	mkdir -p answers/$(YEAR); \
+	ANSWER_FILE="answers/$(YEAR)/submit_day$(DAY).txt"; \
+	echo "Running day$(DAY) with input $$INPUT..."; \
+	OUTPUT=$$(cd $(YEAR)/day$(DAY) && cargo run < "$$INPUT" 2>/dev/null); \
+	echo "$$OUTPUT"; \
+	PART1=$$(echo "$$OUTPUT" | grep "Part 1:" | cut -d':' -f2 | tr -d ' '); \
+	PART2=$$(echo "$$OUTPUT" | grep "Part 2:" | cut -d':' -f2 | tr -d ' '); \
+	if [ ! -z "$$PART1" ]; then \
+		echo "Part1: $$PART1" > "$$ANSWER_FILE"; \
+	fi; \
+	if [ ! -z "$$PART2" ]; then \
+		echo "Part2: $$PART2" >> "$$ANSWER_FILE"; \
+	fi; \
+	echo "Answers saved to $$ANSWER_FILE"; \
+	SESSION_TOKEN=$$(grep AUTH_TOKEN .env | cut -d'=' -f2); \
+	RESPONSE=$$(curl -s --cookie "session=$$SESSION_TOKEN" \
+		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))" \
+		-H "User-Agent: github.com/advent-of-code-rust"); \
+	PART1_DONE=$$(echo "$$RESPONSE" | grep -q "You have completed Part One!"; echo $$?); \
+	PART2_DONE=$$(echo "$$RESPONSE" | grep -q "You have completed Day $$((10#$(DAY)))!"; echo $$?);\
+	if [ ! -z "$$PART1" ] && [ $$PART1_DONE -ne 0 ]; then \
+		read -p "Do you want to submit Part 1 answer? (y/n) " SUBMIT_P1; \
+		if [ "$$SUBMIT_P1" = "y" ]; then \
+			$(MAKE) submit DAY=$(DAY) PART=1; \
+		fi; \
+	fi; \
+	if [ ! -z "$$PART2" ] && [ $$PART2_DONE -ne 0 ] && [ $$PART1_DONE -eq 0 ]; then \
+		read -p "Do you want to submit Part 2 answer? (y/n) " SUBMIT_P2; \
+		if [ "$$SUBMIT_P2" = "y" ]; then \
+			$(MAKE) submit DAY=$(DAY) PART=2; \
+		fi; \
+	fi
+
 # Show help
 help:
 	@echo "Advent of Code 2024 - Rust Makefile Help"
@@ -241,6 +389,11 @@ help:
 	@echo "  run-day         : Run a specific day with input (DAY=XX INPUT=path/to/input.txt)"
 	@echo "  run-release     : Build and run a specific day in release mode (DAY=XX INPUT=path/to/input.txt or INPUT=puzzle_input)"
 	@echo "  run-current     : Run the current day with input (INPUT=path/to/input.txt)"
+	@echo "  make download DAY=XX         : Download puzzle input for day XX"
+	@echo "  make check-status DAY=XX     : Check submission status for day XX"
+	@echo "  make submit DAY=XX PART=P    : Submit answer for day XX part P (1 or 2)"
+	@echo "  make run-submit DAY=XX INPUT=path : Run day XX and prompt to submit answers"
+	@echo "  make run-submit DAY=XX INPUT=download : Download input, run day XX, and prompt to submit"
 	@echo "  help            : Show this help message"
 	@echo ""
 	@echo "Examples:"

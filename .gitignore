@@ -43,3 +43,4 @@ Cargo.lock
 
 # Design docs
 /docs
+**/*.txt
