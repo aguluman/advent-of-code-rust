@@ -261,18 +261,19 @@ check-status:
 	if [ -z "$$SESSION_TOKEN" ]; then \
 		echo "No session token found in .env file"; \
 		exit 1; \
-	fi; \	echo "Checking status for day $(DAY)..."; \
+	fi; \
+	echo "Checking status for day $(DAY)..."; \
 	RESPONSE=$$(curl -s --cookie "session=$$SESSION_TOKEN" \
 		"https://adventofcode.com/$(YEAR)/day/$$((10#$(DAY)))" \
 		-H "User-Agent: github.com/advent-of-code-rust"); \
-	if echo "$$RESPONSE" | grep -q "You have completed Part One!"; then \
+	if echo "$$RESPONSE" | grep -q "Both parts of this puzzle are complete! They provide two gold stars: \*\*"; then \
 		echo "Part 1: Completed ✓"; \
+		echo "Part 2: Completed ✓"; \
+	elif echo "$$RESPONSE" | grep -q "one gold star: \*\|You have completed Part One"; then \
+		echo "Part 1: Completed ✓"; \
+		echo "Part 2: Not completed"; \
 	else \
 		echo "Part 1: Not completed"; \
-	fi; \
-	if echo "$$RESPONSE" | grep -q "You have completed Day $$((10#$(DAY)))!"; then \
-		echo "Part 2: Completed ✓"; \
-	else \
 		echo "Part 2: Not completed"; \
 	fi
 

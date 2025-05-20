@@ -621,13 +621,25 @@ function CheckSubmissionStatus {
             return $status
         }
         
-        # Check for gold stars
-        $part1Completed = $content -match "You have completed Part One!"
-        $part2Unlocked = $content -match "The second part of this puzzle is available"
-        $part2Completed = $content -match "You have completed Day $dayNum!"
-        
-        $status.Part1 = $part1Completed
-        $status.Part2 = $part2Completed
+        # First check for both parts complete message
+        # Check primary completion indicator first
+        if ($content -match "Both parts of this puzzle are complete! They provide two gold stars: \*\*") {
+            $status.Part1 = $true
+            $status.Part2 = $true
+            # Update answer file with correct statuses
+            UpdateAnswerStatus -Year $Year -Day $day -Part 1 -Status "Correct"
+            UpdateAnswerStatus -Year $Year -Day $day -Part 2 -Status "Correct"
+        } else {
+            # Fall back to checking individual completion messages
+            if ($content -match "(one gold star: \*|You have completed Part One!)") {
+                $status.Part1 = $true
+                UpdateAnswerStatus -Year $Year -Day $day -Part 1 -Status "Correct"
+            }
+            if ($content -match "You have completed Day $dayNum!") {
+                $status.Part2 = $true
+                UpdateAnswerStatus -Year $Year -Day $day -Part 2 -Status "Correct"
+            }
+        }
         
         return $status
     }
@@ -971,20 +983,25 @@ switch ($Command) {
         $status = CheckSubmissionStatus -Year $Year -Day $Day
         
         if ($status.Available) {
-            Write-Host "Year ${Year} Day ${Day}:" -ForegroundColor Cyan
-            Write-Host "- Part 1: " -NoNewline
+            # Output status in same format as Makefile
+            Write-Host "[Year ${Year} Day ${Day}]" -ForegroundColor Cyan
+            Write-Host "Part 1: " -NoNewline
             if ($status.Part1) {
-                Write-Host "Completed ✓" -ForegroundColor Green
+                Write-Host "✓" -ForegroundColor Green -NoNewline
+                Write-Host " complete"
             }
             else {
-                Write-Host "Not completed" -ForegroundColor Yellow
+                Write-Host "✗" -ForegroundColor Red -NoNewline
+                Write-Host " incomplete"
             }
-            Write-Host "- Part 2: " -NoNewline
+            Write-Host "Part 2: " -NoNewline
             if ($status.Part2) {
-                Write-Host "Completed ✓" -ForegroundColor Green
+                Write-Host "✓" -ForegroundColor Green -NoNewline
+                Write-Host " complete"
             }
             else {
-                Write-Host "Not completed" -ForegroundColor Yellow
+                Write-Host "✗" -ForegroundColor Red -NoNewline
+                Write-Host " incomplete"
             }
         }
     }
