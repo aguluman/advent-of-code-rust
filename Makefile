@@ -4,7 +4,19 @@
 all: test lint
 
 # Variables
-YEAR := $(shell ls -d [0-9][0-9][0-9][0-9] | sort -r | head -n 1)
+YEAR := $(shell if ls -d [0-9][0-9][0-9][0-9] >/dev/null 2>&1; then \
+	ls -d [0-9][0-9][0-9][0-9] | sort -r | head -n 1; \
+else \
+	echo ""; \
+fi)
+
+ifeq ($(YEAR),)
+$(error No year directories found. Please create a directory like 2024 first.)
+endif
+
+$(info Using year: $(YEAR))
+
+# Rest of variables
 DAYS := $(wildcard $(YEAR)/day*)
 CURRENT_DAY := $(shell ls -d $(YEAR)/day* 2>/dev/null | sort -r | head -n 1)
 
