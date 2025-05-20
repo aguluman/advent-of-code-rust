@@ -67,18 +67,15 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 check           : Run cargo check for all days"
     Write-Host "  .\run-aoc.ps1 clean           : Clean all build artifacts"
     Write-Host "  .\run-aoc.ps1 new-day         : Create a new day from template (interactive)"
-    Write-Host "  .\run-aoc.ps1 setup           : Setup project from scratch"    Write-Host "  .\run-aoc.ps1 run-day XX path/to/input.txt     : Run a specific day with input file"
+    Write-Host "  .\run-aoc.ps1 setup           : Setup project from scratch"    
+    Write-Host "  .\run-aoc.ps1 run-day XX path/to/input.txt     : Run a specific day with input file"
     Write-Host "  .\run-aoc.ps1 run-release XX path/to/input.txt : Run a specific day in release mode"
     Write-Host "  .\run-aoc.ps1 run-release XX puzzle_input      : Use default input path"
     Write-Host "  .\run-aoc.ps1 run-current path/to/input.txt    : Run the current day with input file"
     Write-Host "  .\run-aoc.ps1 run-current puzzle_input         : Run the current day with default input"
     Write-Host ""
-    Write-Host "Input path handling:"
-    Write-Host "  - Absolute paths: C:\path\to\input.txt"
-    Write-Host "  - Relative paths from workspace root: inputs/2024/day01.txt"
-    Write-Host "  - Root-relative paths: /inputs/2024/day01.txt (converted to workspace-relative)"
     Write-Host "  .\run-aoc.ps1 download XX       : Download puzzle input for day XX"
-    Write-Host "  .\run-aoc.ps1 check XX          : Check submission status for day XX"    
+    Write-Host "  .\run-aoc.ps1 check-submit-status XX          : Check submission status for day XX"    
     Write-Host "  .\run-aoc.ps1 submit XX P       : Submit answer for day XX part P (1 or 2)"
     Write-Host "  .\run-aoc.ps1 force-submit XX P : Force-submit answer for day XX part P (bypasses completion check)"
     Write-Host "  .\run-aoc.ps1 run-submit XX path : Run day XX and prompt to submit answers"
@@ -91,6 +88,11 @@ function ShowHelp {
     Write-Host "  .\run-aoc.ps1 run-day 02 ..\inputs\day02.txt  # Run day02 with specified input"
     Write-Host "  .\run-aoc.ps1 run-release 01 puzzle_input     # Build and run day01 in release mode with default input"
     Write-Host ""
+    Write-Host "Input path handling:"
+    Write-Host "  - Absolute paths: C:\path\to\input.txt"
+    Write-Host "  - Relative paths from workspace root: inputs/2024/day01.txt"
+    Write-Host "  - Root-relative paths: /inputs/2024/day01.txt (converted to workspace-relative)"
+    
 }
 
 function PadDayNumber {
@@ -1000,7 +1002,7 @@ switch ($Command) {
             Write-Host "No answer found for Part $part!" -ForegroundColor Red
         }
     }
-    "check" {
+    "check-submit-status" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
