@@ -260,6 +260,12 @@ function CreateNewDay {
     # Update Cargo.toml
     (Get-Content "$dayDir/Cargo.toml") -replace 'day_template', "day$day" | Set-Content "$dayDir/Cargo.toml"
     
+    # Update main.rs to replace day_template with day$day
+    if (Test-Path "$dayDir/src/main.rs") {
+        (Get-Content "$dayDir/src/main.rs") -replace 'day_template', "day$day" | Set-Content "$dayDir/src/main.rs"
+        Write-Host "Updated main.rs with correct day module name." -ForegroundColor Green
+    }
+    
     # Update workspace Cargo.toml to include the new day
     Write-Host "Updating workspace Cargo.toml..." -ForegroundColor Cyan
     $cargoToml = Get-Content "Cargo.toml"
@@ -1039,12 +1045,13 @@ switch ($Command) {
                 Write-Host " incomplete"
             }
         }
-    }
-    "run-submit" {
+    }    "run-submit" {
         if (-not $Day) {
             Write-Host "Please specify a day!" -ForegroundColor Red
             exit 1
         }
+        
+        $day = PadDayNumber $Day
         
         # If inputPath is "download", get the input from AoC
         if ($InputPath -eq "download") {
@@ -1056,9 +1063,22 @@ switch ($Command) {
                 exit 1
             }
         }
+        # If inputPath is "puzzle_input", use the repository input path
+        elseif ($InputPath -eq "puzzle_input") {
+            $workspaceRoot = (Get-Location).Path
+            $daySpecificInput = Join-Path $workspaceRoot "inputs\$Year\day$day.txt"
+            
+            if (Test-Path $daySpecificInput) {
+                Write-Host "Using day-specific input file: $daySpecificInput" -ForegroundColor Green
+                $InputPath = $daySpecificInput
+            }
+            else {
+                Write-Host "Could not find day-specific input file: $daySpecificInput" -ForegroundColor Red
+                exit 1
+            }
+        }
         
         # Run the solution
-        $day = PadDayNumber $Day
         $dayDir = "$Year/day$day"
         
         if (-not (Test-Path $dayDir -PathType Container)) {
@@ -1075,15 +1095,20 @@ switch ($Command) {
         
         # Run the solution and capture output
         Write-Host "Running day $day with input $InputPath..." -ForegroundColor Cyan
-        
         # Run in current PowerShell and capture output
+        # First build the project
+        Write-Host "Building $dayDir in release mode..." -ForegroundColor Green
         Push-Location $dayDir
         cargo build --release
         Pop-Location
         
-        # Get the binary path (workspace or day-specific)
+        # Get just the day directory name without the year prefix
         $dayName = "day$day"
+        
+        # The binary should be in the workspace's target directory
         $exePath = Join-Path (Get-Location).Path "target\release\$dayName.exe"
+        
+        # If it's not there, check if it's in the day's target directory (though this is unusual)
         if (-not (Test-Path $exePath)) {
             $exePath = Join-Path (Join-Path $dayDir "target\release") "$dayName.exe"
             if (-not (Test-Path $exePath)) {
@@ -1092,8 +1117,11 @@ switch ($Command) {
             }
         }
         
+        Write-Host "Running $exePath with input from $InputPath" -ForegroundColor Green
+        
+        # Make sure we use Get-Content with the correct encoding and pipe it properly
         # Capture output by running the command and storing its output
-        $outputCapture = Get-Content $InputPath | & $exePath
+        $outputCapture = Get-Content -Path $InputPath -Raw | & $exePath
         
         # Display the output
         $outputCapture | ForEach-Object { Write-Host $_ }
