@@ -41,7 +41,7 @@ in
   
   # Create a combined package with all binaries
   all = pkgs.symlinkJoin {
-    name = "advent-of-code-2024-rust-all";
+    name = "advent-of-code-rust-all";
     paths = builtins.attrValues dayPackages;
   };
 }

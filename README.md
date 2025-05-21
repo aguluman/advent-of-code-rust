@@ -30,8 +30,8 @@ nix-shell
 1. Install [Rust](https://www.rust-lang.org/tools/install)
 2. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/advent-of-code-2024-rust
-   cd advent-of-code-2024-rust
+   git clone https://github.com/your-username/advent-of-code-rust
+   cd advent-of-code-rust
    ```
 
 ## Project Structure

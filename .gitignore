@@ -17,7 +17,6 @@ Cargo.lock
 # More information here https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
 
 # MSVC Windows builds generate these
-*.pdb
 *.ilk
 *.exp
 
@@ -35,12 +34,11 @@ Cargo.lock
 # Generated documentation
 /doc/
 
-# Rustfmt backup files
-**/*.rs.bk
-
 # Added by cargo
 /target
 
 # Design docs
 /docs
+
+#inputs and answers files
 **/*.txt

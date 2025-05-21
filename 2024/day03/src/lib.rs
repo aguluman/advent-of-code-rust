@@ -42,25 +42,6 @@ fn chars_match_seq(chars: &mut Chars, pattern: &str) -> bool {
     true
 }
 
-/// Parse mul instruction parameters (x,y)
-fn parse_mul_params(chars: &mut Chars) -> Option<(u64, u64)> {
-    let first = parse_number(chars)?;
-
-    // Expect a comma after the first number
-    if chars.next() != Some(',') {
-        return None;
-    }
-
-    let second = parse_number(chars)?;
-
-    // Expect a closing parenthesis
-    if chars.next() != Some(')') {
-        return None;
-    }
-
-    Some((first, second))
-}
-
 /// Parse a 1-3 digit number
 fn parse_number(chars: &mut Chars) -> Option<u64> {
     let mut num_str = String::with_capacity(3);
@@ -88,6 +69,25 @@ fn parse_number(chars: &mut Chars) -> Option<u64> {
     }
 
     num_str.parse::<u64>().ok()
+}
+
+/// Parse mul instruction parameters (x,y)
+fn parse_mul_params(chars: &mut Chars) -> Option<(u64, u64)> {
+    let first = parse_number(chars)?;
+
+    // Expect a comma after the first number
+    if chars.next() != Some(',') {
+        return None;
+    }
+
+    let second = parse_number(chars)?;
+
+    // Expect a closing parenthesis
+    if chars.next() != Some(')') {
+        return None;
+    }
+
+    Some((first, second))
 }
 
 /// Parse the input to extract valid multiplication instructions

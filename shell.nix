@@ -12,7 +12,7 @@ let
   };
 in
 pkgs.mkShell {
-  name = "advent-of-code-2024-rust";
+  name = "advent-of-code-rust";
   
   buildInputs = with pkgs; [
     # Rust toolchain

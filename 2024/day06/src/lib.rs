@@ -142,7 +142,7 @@ pub fn part2(input: &str) -> u64 {
         while !queue.is_empty() {
             let (i, j, dir) = queue.pop_front().unwrap();
 
-            // Compute next position based on the current direction
+            // Compute the next position based on the current direction
             let next_pos = match dir {
                 Direction::Up => {
                     if i >= 1 {

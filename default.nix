@@ -11,7 +11,7 @@ let
   };
 in
 pkgs.rustPlatform.buildRustPackage {
-  pname = "advent-of-code-2024-rust";
+  pname = "advent-of-code-rust";
   version = "0.1.0";
   
   src = ./.;
@@ -27,7 +27,7 @@ pkgs.rustPlatform.buildRustPackage {
   
   meta = with pkgs.lib; {
     description = "Solutions for Advent of Code 2024 in Rust";
-    homepage = "https://github.com/aguluman/advent-of-code-2024-rust";
+    homepage = "https://github.com/aguluman/advent-of-code-rust";
     license = licenses.mit;  # Adjust as needed
     maintainers = [ ];
   };
