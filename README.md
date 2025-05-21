@@ -82,8 +82,8 @@ For new users, we recommend:
 The scripts will automatically find these files when using the `puzzle_input` parameter:
 
 ```bash
-# Using repository input files, DAY=XX represent day
-make run-release DAY=01 INPUT=puzzle_input
+   # Using repository input files, DAY=XX represent day
+   make run-release DAY=01 INPUT=puzzle_input
 ```
 
 ```powershell
@@ -102,77 +102,77 @@ If you're using a Unix-like environment (including WSL on Windows):
 #### Build
 
 ```bash
-# Build all days in debug mode
-make build
-
-# Build a specific day
-make build-01
-
-# Build all days in release mode
-make release
+   # Build all days in debug mode
+   make build
+   
+   # Build a specific day
+   make build-01
+   
+   # Build all days in release mode
+   make release
 ```
 
 #### Test
 
 ```bash
-# Run tests for all days
-make test
-
-# Run tests for a specific day
-make test-01
+   # Run tests for all days
+   make test
+   
+   # Run tests for a specific day
+   make test-01
 ```
 
 #### Run and Submit Solutions
 
 ```bash
-# Download input for a specific day
-make download DAY=01
-
-# Run a day's solution and be prompted to submit answers
-make run-submit DAY=01 INPUT=inputs/2024/day01.txt
-
-# Download input, run solution, and be prompted to submit answers
-make run-submit DAY=01 INPUT=download
-
-# Submit a specific part's answer manually
-make submit DAY=01 PART=1  # Submit Part 1
-make submit DAY=01 PART=2  # Submit Part 2
-
-# Check submission status for a day
-make check-status DAY=01
-
-# Basic Run Commands
-make run-day DAY=01 INPUT=path/to/input.txt         # Run with input
-make run-release DAY=01 INPUT=path/to/input.txt     # Run in release mode
-make run-release DAY=01 INPUT=puzzle_input          # Use default input path
-make run-current INPUT=path/to/input.txt            # Run most recent day
-make run-current INPUT=puzzle_input                 # Use default input path
+   # Download input for a specific day
+   make download DAY=01
+   
+   # Run a day's solution and be prompted to submit answers
+   make run-submit DAY=01 INPUT=inputs/2024/day01.txt
+   
+   # Download input, run solution, and be prompted to submit answers
+   make run-submit DAY=01 INPUT=download
+   
+   # Submit a specific part's answer manually
+   make submit DAY=01 PART=1  # Submit Part 1
+   make submit DAY=01 PART=2  # Submit Part 2
+   
+   # Check submission status for a day
+   make check-status DAY=01
+   
+   # Basic Run Commands
+   make run-day DAY=01 INPUT=path/to/input.txt         # Run with input
+   make run-release DAY=01 INPUT=path/to/input.txt     # Run in release mode
+   make run-release DAY=01 INPUT=puzzle_input          # Use default input path
+   make run-current INPUT=path/to/input.txt            # Run most recent day
+   make run-current INPUT=puzzle_input                 # Use default input path
 ```
 
 #### Create a New Day
 
 ```bash
-make new-day
-# Enter the day number when prompted
+   make new-day
+   # Enter the day number when prompted
 ```
 
 #### Quality Checks
 
 ```bash
-# Run linting (clippy and formatting check)
-make lint
-
-# Format all code
-make fmt
-
-# Check only
-make check
+   # Run linting (clippy and formatting check)
+   make lint
+   
+   # Format all code
+   make fmt
+   
+   # Check only
+   make check
 ```
 
 #### See All Available Commands
 
 ```bash
-make help
+   make help
 ```
 
 ### Windows Native Build System (PowerShell)
@@ -272,11 +272,11 @@ For Windows users who prefer to work natively (without WSL), a PowerShell script
 This repository also includes Nix build files:
 
 ```bash
-# Build everything
-nix-build build.nix -A all
-
-# Build a specific day
-nix-build build.nix -A days.day01
+   # Build everything
+   nix-build build.nix -A all
+   
+   # Build a specific day
+   nix-build build.nix -A days.day01
 ```
 
 ## License
@@ -298,13 +298,13 @@ nix-build build.nix -A days.day01
 
 #### Make (Unix/Linux/WSL)
 ```bash
-# Complete workflow for a new day
-make download DAY=01                             # Download input
-make run-submit DAY=01 INPUT=puzzle_input       # Run and submit answers
-make submit DAY=01 PART=2                       # Submit Part 2 directly
-
-# Or more concisely
-make run-submit DAY=01 INPUT=download           # Download, run, and submit in one command
+   # Complete workflow for a new day
+   make download DAY=01                             # Download input
+   make run-submit DAY=01 INPUT=puzzle_input       # Run and submit answers
+   make submit DAY=01 PART=2                       # Submit Part 2 directly
+   
+   # Or more concisely
+   make run-submit DAY=01 INPUT=download           # Download, run, and submit in one command
 ```
 
 These scripts will handle downloading inputs, running solutions, saving answers, and managing submissions automatically. They also provide helpful feedback for incorrect answers and maintain submission status.

@@ -464,7 +464,8 @@ function RunDayRelease {
             Write-Host "  - Starting with \: \inputs\2024\day02.txt (relative to workspace)"
             exit 1
         }
-    }Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
+    }
+    Write-Host "Building and running $dayDir in release mode with input $inputPath..." -ForegroundColor Cyan
     Push-Location $dayDir
     cargo build --release
     # Get just the day directory name without the year prefix
@@ -552,7 +553,8 @@ function RunCurrentDay {
             Write-Host "Input file not found: $inputPath" -ForegroundColor Red
             exit 1
         }
-    }    Write-Host "Running $currentDay with input $inputPath..." -ForegroundColor Cyan
+    }
+    Write-Host "Running $currentDay with input $inputPath..." -ForegroundColor Cyan
     Push-Location $currentDay
     # Extract just the day directory name without the year prefix
     $dayName = ($currentDay -split '/')[-1]
