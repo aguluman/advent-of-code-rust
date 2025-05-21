@@ -68,7 +68,7 @@ fn split_updates<'a>(
         );
     }
 
-    // Build following map
+    // Build the following map
     let mut following: HashMap<i32, HashSet<i32>> = HashMap::new();
     for &(p, q) in rules {
         following.entry(p).or_default().insert(q);

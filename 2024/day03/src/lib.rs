@@ -130,7 +130,7 @@ pub fn part1(input: &str) -> u64 {
         .sum()
 }
 
-/// Part 2: Find valid multiplications in corrupted memory with do/don't controls
+/// Part 2: Find valid multiplications in corrupted memory with do/don't control
 pub fn part2(input: &str) -> u64 {
     parse_instructions(input, true)
         .iter()

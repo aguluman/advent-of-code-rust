@@ -1,4 +1,4 @@
-# Advent of Code - Rust Solutions
+# Advent of Code—Rust Solutions
 
 This repository contains solutions for the [Advent of Code 2024](https://adventofcode.com/2024) and other years puzzles, implemented in Rust.
 
@@ -15,7 +15,7 @@ If you have [Nix](https://nixos.org/) and [direnv](https://direnv.net/) installe
    direnv allow
    ```
 
-2. Nix will automatically setup the development environment with all required tools.
+2. Nix will automatically set up the development environment with all required tools.
 
 ### Using Nix Shell Manually
 

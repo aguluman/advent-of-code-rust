@@ -37,20 +37,20 @@ pub fn part1(input: &str) -> u64 {
         panic!("Invalid map: not all rows have the same length");
     }
 
-    // Find starting position marked with '^'
+    // Find a starting position marked with '^'
     let (start_i, start_j) = (0..n)
         .flat_map(|i| (0..n).map(move |j| (i, j)))
         .find(|&(i, j)| map[i][j] == '^')
         .expect("No starting position found");
 
-    // Start simulation with initial position and Up direction
+    // Start simulation with the initial position and Up direction
     let mut i = start_i;
     let mut j = start_j;
     let mut dir = Direction::Up;
     let mut history = vec![(start_i, start_j)];
 
     loop {
-        // Compute next position based on current direction
+        // Compute the next position based on the current direction
         let next_pos = match dir {
             Direction::Up => {
                 if i >= 1 {
@@ -84,7 +84,7 @@ pub fn part1(input: &str) -> u64 {
 
         if let Some((ni, nj)) = next_pos {
             if map[ni][nj] == '#' {
-                // Hit wall - stay in place but rotate
+                // Hit the wall - stay in place but rotate
                 dir = dir.next_direction();
             } else {
                 // Move forward + track position
@@ -124,13 +124,13 @@ pub fn part2(input: &str) -> u64 {
         panic!("Invalid map: not all rows have the same length");
     }
 
-    // Find starting position marked with '^'
+    // Find a starting position marked with '^'
     let (start_i, start_j) = (0..n)
         .flat_map(|i| (0..n).map(move |j| (i, j)))
         .find(|&(i, j)| map[i][j] == '^')
         .expect("No starting position found");
 
-    // Function to check if blocking position creates a loop
+    // Function to check if the blocking position creates a loop
     fn find_loop(map: &[Vec<char>], start_i: usize, start_j: usize, start_dir: Direction) -> bool {
         use std::collections::{HashSet, VecDeque};
 
@@ -142,7 +142,7 @@ pub fn part2(input: &str) -> u64 {
         while !queue.is_empty() {
             let (i, j, dir) = queue.pop_front().unwrap();
 
-            // Compute next position based on current direction
+            // Compute next position based on the current direction
             let next_pos = match dir {
                 Direction::Up => {
                     if i >= 1 {
