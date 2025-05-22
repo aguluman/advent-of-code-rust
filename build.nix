@@ -13,6 +13,7 @@ let
     "2024/day05"
     "2024/day06"
     "2024/day07"
+    "2024/day08"
     # Add new days as they are created
   ];
   
