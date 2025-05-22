@@ -291,6 +291,31 @@ function CreateNewDay {
         Write-Host "Updated Cargo.toml with new day." -ForegroundColor Green
     }
     
+    # After updating the Cargo.toml, also update build.nix
+    Write-Host "Updating build.nix..." -ForegroundColor Cyan
+    $buildNix = Get-Content "build.nix"
+    $updatedBuildNix = @()
+    $commentFound = $false
+    
+    foreach ($line in $buildNix) {
+        if ($line -eq '    # Add new days as they are created' -and -not $commentFound) {
+            $updatedBuildNix += "    `"$Year/day$day`""
+            $updatedBuildNix += $line
+            $commentFound = $true
+        }
+        else {
+            $updatedBuildNix += $line
+        }
+    }
+    
+    if (-not $commentFound) {
+        Write-Host "Could not find comment marker in build.nix. Please add `"$Year/day$day`" manually." -ForegroundColor Yellow
+    }
+    else {
+        $updatedBuildNix | Set-Content "build.nix"
+        Write-Host "Updated build.nix with new day." -ForegroundColor Green
+    }
+    
     Write-Host "Created $dayDir successfully!" -ForegroundColor Green
 }
 

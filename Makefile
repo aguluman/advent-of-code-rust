@@ -119,6 +119,8 @@ new-day:
 	sed -i "s/day_template/day$$day/g" "$(YEAR)/day$$day/src/main.rs"; \
 	echo "Updating workspace Cargo.toml..."; \
 	sed -i '/# Add new days as they are created/i \    "$(YEAR)/day'$$day'",' Cargo.toml; \
+	echo "Updating build.nix..."; \
+	sed -i '/# Add new days as they are created/i \    "$(YEAR)/day'$$day'"' build.nix; \
 	echo "Created $(YEAR)/day$$day successfully!"
 
 # Setup project from scratch

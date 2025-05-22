@@ -3,17 +3,52 @@
 let
   # Import the default.nix to reuse the build configuration
   aoc-package = import ./default.nix { inherit pkgs; };
-  
-  # Define the days to build
-  days = [
-    "day01"
-    "day02"
-    "day03"
-    "day04"
-    "day05"
-    "day06"
+    # Automatically detect all day directories  
+  # Define explicit days to build - this section can be updated by scripts
+  explicitDays = [
+    "2024/day01"
+    "2024/day02"
+    "2024/day03"
+    "2024/day04"
+    "2024/day05"
+    "2024/day06"
+    "2024/day07"
     # Add new days as they are created
   ];
+  
+  # Also auto-detect directories as a fallback
+  days = let
+    # Find the most recent year directory (assumes year directories like 2024, 2023, etc.)
+    years = builtins.filter (x: builtins.match "[0-9]{4}" x != null) 
+                        (builtins.attrNames (builtins.readDir ./.));
+    currentYear = builtins.head (builtins.sort (a: b: a > b) years);
+    
+    # Read all entries in the year directory
+    yearDir = if builtins.length years > 0 then ./${currentYear} else ./.;
+    dirEntries = builtins.readDir yearDir;
+    
+    # Filter to only get day directories (matching "day##" pattern)
+    isDayDir = name: type: 
+      type == "directory" && builtins.match "day[0-9]{2}" name != null;
+    
+    # Extract just the directory names that match day pattern
+    dayDirs = builtins.attrNames 
+      (builtins.filterAttrs isDayDir dirEntries);
+        # If we have a year structure, prefix with year, otherwise use as-is
+    prefixYear = day: 
+      if builtins.length years > 0 
+      then "${currentYear}/${day}" 
+      else day;
+      
+    # Get the list of day directories, either from explicit list or auto-detection
+    finalDayDirs = 
+      if builtins.length explicitDays > 0 
+      then explicitDays 
+      else builtins.sort (a: b: a < b) dayDirs;
+  in
+    if builtins.length explicitDays > 0
+    then explicitDays
+    else builtins.map prefixYear (builtins.sort (a: b: a < b) dayDirs);
   
   # Function to build a single day
   buildDay = day: pkgs.rustPlatform.buildRustPackage {
