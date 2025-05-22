@@ -383,7 +383,7 @@ run-submit:
 	fi; \
 	INPUT="$(INPUT)"; \
 	if [ -z "$$INPUT" ]; then \
-		echo "Please specify an input file using INPUT=path/to/input.txt or INPUT=download"; \
+		echo "Please specify an input file using INPUT=path/to/input.txt, INPUT=download, or INPUT=puzzle_input"; \
 		exit 1; \
 	fi; \
 	\
@@ -391,6 +391,32 @@ run-submit:
 	if [ "$$INPUT" = "download" ]; then \
 		$(MAKE) download DAY=$(DAY); \
 		INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
+	fi; \
+	\
+	# If INPUT is "puzzle_input", resolve it like run-release does \
+	if [ "$$INPUT" = "puzzle_input" ]; then \
+		if [ ! -d "inputs/$(YEAR)" ]; then \
+			echo "Notice: Repository inputs directory not found."; \
+			echo "Creating directory: inputs/$(YEAR)"; \
+			mkdir -p inputs/$(YEAR); \
+			echo "Created inputs/$(YEAR) - You can now place your puzzle inputs there."; \
+		fi; \
+		if [ -f "inputs/$(YEAR)/day$(DAY).txt" ]; then \
+			INPUT="inputs/$(YEAR)/day$(DAY).txt"; \
+			echo "Using day-specific input file: $$INPUT"; \
+		elif [ -f "inputs/$(YEAR)/input.txt" ]; then \
+			INPUT="inputs/$(YEAR)/input.txt"; \
+			echo "Using generic input file: $$INPUT"; \
+		elif [ -d "/mnt/c" ]; then \
+			INPUT="/mnt/c/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT"; \
+		elif [ "$(shell uname -s)" = "Linux" ]; then \
+			INPUT="$(HOME)/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT"; \
+		else \
+			INPUT="C:/Users/chukw/Downloads/input.txt"; \
+			echo "Using default download path: $$INPUT"; \
+		fi; \
 	fi; \
 	\
 	# Check if input file exists \
