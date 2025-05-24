@@ -22,7 +22,7 @@ If you have [Nix](https://nixos.org/) and [direnv](https://direnv.net/) installe
 If you have [Nix](https://nixos.org/) installed but not direnv:
 
 ```bash
-nix-shell
+  nix-shell
 ```
 
 ### Traditional Setup
@@ -67,12 +67,12 @@ This project includes automated tools for a streamlined Advent of Code workflow:
 
 ### Setting Up Input Files
 
-For new users, we recommend:
+For new users, I recommend:
 
 1. Create an `inputs/2024/` directory in your project root if it doesn't exist
 2. Create an `.env` file in your project root with your Advent of Code session token:
    ```
-   AUTH_TOKEN=your_session_token_here
+   AUTH_TOKEN=your_cookie_session_token_here
    ```
 3. Use the automated download and submit features (see below), or manually:
    - Download your puzzle inputs from the [Advent of Code website](https://adventofcode.com/2024)
@@ -267,7 +267,7 @@ For Windows users who prefer to work natively (without WSL), a PowerShell script
 ```
 
 
-## Building with Nix
+### Building with Nix
 
 This repository also includes Nix build files:
 
@@ -276,7 +276,38 @@ This repository also includes Nix build files:
    nix-build build.nix -A all
    
    # Build a specific day
-   nix-build build.nix -A days.day01
+   nix-build build.nix -A days."2024/day01"
+```
+
+### Additional Nix Commands
+
+```bash
+   # Build the main package
+   nix-build default.nix
+   
+   # Or simply
+   nix-build
+   
+   # Run a specific day after building (the result is a symlink)
+   ./result/bin/day01
+   
+   # Enter development shell with all tools
+   nix-shell
+   
+   # Using modern Nix commands
+   nix build
+   nix run .#days."2024/day01"
+```
+
+### Running Development Tasks in Nix Shell
+
+Once inside the Nix shell (`nix-shell`), you can use cargo commands directly:
+
+```bash
+   # Inside nix-shell
+   cargo run --bin day01
+   cargo test --bin day01
+   cargo build --release
 ```
 
 ## License

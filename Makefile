@@ -512,7 +512,7 @@ run-submit:
 
 # Show help
 help:
-	@echo "Advent of Code 2024 - Rust Makefile Help"
+	@echo "Advent of Code $(YEAR) - Rust Makefile Help"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  all             : Run tests and linting (default)"

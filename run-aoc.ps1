@@ -1183,6 +1183,7 @@ switch ($Command) {
                     # If Part 1 was successfully submitted, check status again and try Part 2
                     if ($result -eq $true -and $answers.Part2) {
                         # Brief pause to allow website to update
+                        Write-Host "Waiting 45 seconds before checking status again..." -ForegroundColor Yellow
                         Start-Sleep -Seconds 45
                         
                         # Refresh status after Part 1 submission
