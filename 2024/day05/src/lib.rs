@@ -8,18 +8,21 @@ type UpdatePartition<'a> = (Vec<&'a UpdateList>, Vec<&'a UpdateList>);
 
 /// Parse the input string into rules and updates
 fn parse_input(input: &str) -> (Vec<Rule>, Vec<UpdateList>) {
-    // Split input into blocks by empty lines
-    let blocks: Vec<&str> = input.split("\n\n").collect();
-    if blocks.len() < 2 {
-        return (Vec::new(), Vec::new());
+    let lines: Vec<&str> = input.lines().collect();
+
+    // Find the boundary between rules and updates
+    let mut boundary_index = 0;
+    for (i, line) in lines.iter().enumerate() {
+        if line.contains(',') {
+            boundary_index = i;
+            break;
+        }
     }
 
-    let rules_block = blocks[0];
-    let updates_block = blocks[1];
-
-    // Parse rules
-    let rules: Vec<Rule> = rules_block
-        .lines()
+    let rules_lines = &lines[..boundary_index];
+    let updates_lines = &lines[boundary_index..]; // Parse rules
+    let rules: Vec<Rule> = rules_lines
+        .iter()
         .filter(|line| !line.trim().is_empty())
         .filter_map(|line| {
             let parts: Vec<&str> = line.split('|').collect();
@@ -34,8 +37,8 @@ fn parse_input(input: &str) -> (Vec<Rule>, Vec<UpdateList>) {
         .collect();
 
     // Parse updates
-    let updates: Vec<UpdateList> = updates_block
-        .lines()
+    let updates: Vec<UpdateList> = updates_lines
+        .iter()
         .filter(|line| !line.trim().is_empty())
         .map(|line| {
             line.split(',')
